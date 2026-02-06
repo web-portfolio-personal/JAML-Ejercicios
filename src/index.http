@@ -1,0 +1,222 @@
+### ==========================================
+### 🚀 JAML-Ejercicios API - Cursos
+### ==========================================
+
+### Variables de configuración
+@baseUrl = http://localhost:3000
+@apiUrl = {{baseUrl}}/api
+
+### ==========================================
+### Rutas Básicas
+### ==========================================
+
+### GET / - Ruta principal
+# Muestra mensaje de bienvenida de la API
+GET {{baseUrl}}/
+
+### GET /health - Health Check
+# Verifica el estado del servidor
+GET {{baseUrl}}/health
+
+### ==========================================
+### GET /api/cursos/programacion - Listar todos los cursos
+### ==========================================
+
+### Obtener todos los cursos
+GET {{apiUrl}}/cursos/programacion
+
+### Filtrar por nivel básico
+GET {{apiUrl}}/cursos/programacion?nivel=basico
+
+### Filtrar por nivel avanzado
+GET {{apiUrl}}/cursos/programacion?nivel=avanzado
+
+### Filtrar por nivel intermedio
+GET {{apiUrl}}/cursos/programacion?nivel=intermedio
+
+### Ordenar por vistas (descendente)
+GET {{apiUrl}}/cursos/programacion?orden=vistas
+
+### Ordenar por título (alfabético)
+GET {{apiUrl}}/cursos/programacion?orden=titulo
+
+### Combinar filtros: nivel básico ordenado por vistas
+GET {{apiUrl}}/cursos/programacion?nivel=basico&orden=vistas
+
+### ==========================================
+### GET /api/cursos/programacion/:id - Obtener un curso específico
+### ==========================================
+
+### Obtener curso con ID 1
+GET {{apiUrl}}/cursos/programacion/1
+
+### Obtener curso con ID 2
+GET {{apiUrl}}/cursos/programacion/2
+
+### Obtener curso con ID 3
+GET {{apiUrl}}/cursos/programacion/3
+
+### Error: Curso no existente (ID 999)
+GET {{apiUrl}}/cursos/programacion/999
+
+### ==========================================
+### POST /api/cursos/programacion - Crear nuevo curso
+### ==========================================
+
+### Crear curso completo de React
+POST {{apiUrl}}/cursos/programacion
+Content-Type: application/json
+
+{
+  "titulo": "React desde Cero",
+  "lenguaje": "javascript",
+  "nivel": "basico",
+  "descripcion": "Aprende React con hooks y componentes funcionales"
+}
+
+### Crear curso de TypeScript
+POST {{apiUrl}}/cursos/programacion
+Content-Type: application/json
+
+{
+  "titulo": "TypeScript Avanzado",
+  "lenguaje": "typescript",
+  "nivel": "avanzado",
+  "descripcion": "Tipos avanzados, generics y decoradores"
+}
+
+### Crear curso sin descripción (opcional)
+POST {{apiUrl}}/cursos/programacion
+Content-Type: application/json
+
+{
+  "titulo": "Python Básico",
+  "lenguaje": "python",
+  "nivel": "basico"
+}
+
+### Error: Datos incompletos (falta titulo)
+POST {{apiUrl}}/cursos/programacion
+Content-Type: application/json
+
+{
+  "lenguaje": "javascript",
+  "nivel": "basico"
+}
+
+### Error: Nivel inválido
+POST {{apiUrl}}/cursos/programacion
+Content-Type: application/json
+
+{
+  "titulo": "Curso Test",
+  "lenguaje": "javascript",
+  "nivel": "experto"
+}
+
+### ==========================================
+### PUT /api/cursos/programacion/:id - Actualizar curso completo
+### ==========================================
+
+### Actualizar curso con ID 1 (reemplazo completo)
+PUT {{apiUrl}}/cursos/programacion/1
+Content-Type: application/json
+
+{
+  "titulo": "JavaScript Moderno - Actualizado 2026",
+  "lenguaje": "javascript",
+  "nivel": "intermedio",
+  "descripcion": "ES2026 con las últimas características"
+}
+
+### Actualizar curso con ID 2
+PUT {{apiUrl}}/cursos/programacion/2
+Content-Type: application/json
+
+{
+  "titulo": "Node.js Expert",
+  "lenguaje": "javascript",
+  "nivel": "avanzado",
+  "descripcion": "Node.js con Express 5 y MongoDB"
+}
+
+### Error: Actualizar curso no existente
+PUT {{apiUrl}}/cursos/programacion/999
+Content-Type: application/json
+
+{
+  "titulo": "Curso Fantasma",
+  "lenguaje": "javascript",
+  "nivel": "basico"
+}
+
+### ==========================================
+### PATCH /api/cursos/programacion/:id - Actualización parcial
+### ==========================================
+
+### Actualizar solo el título del curso 1
+PATCH {{apiUrl}}/cursos/programacion/1
+Content-Type: application/json
+
+{
+  "titulo": "JavaScript ES2026"
+}
+
+### Actualizar solo el nivel del curso 2
+PATCH {{apiUrl}}/cursos/programacion/2
+Content-Type: application/json
+
+{
+  "nivel": "intermedio"
+}
+
+### Actualizar múltiples campos del curso 3
+PATCH {{apiUrl}}/cursos/programacion/3
+Content-Type: application/json
+
+{
+  "titulo": "Python para Machine Learning",
+  "nivel": "avanzado",
+  "descripcion": "Python aplicado a IA y ML"
+}
+
+### Error: Actualizar parcialmente curso no existente
+PATCH {{apiUrl}}/cursos/programacion/999
+Content-Type: application/json
+
+{
+  "titulo": "No existe"
+}
+
+### ==========================================
+### DELETE /api/cursos/programacion/:id - Eliminar curso
+### ==========================================
+
+### Eliminar curso con ID 1
+DELETE {{apiUrl}}/cursos/programacion/1
+
+### Eliminar curso con ID 2
+DELETE {{apiUrl}}/cursos/programacion/2
+
+### Error: Eliminar curso no existente
+DELETE {{apiUrl}}/cursos/programacion/999
+
+### ==========================================
+### Pruebas de Error
+### ==========================================
+
+### Ruta no existente (404)
+GET {{baseUrl}}/ruta-inexistente
+
+### Endpoint de API no existente
+GET {{apiUrl}}/cursos/diseño
+
+### ==========================================
+### 📝 Notas de Uso
+### ==========================================
+# 1. Ejecuta el servidor: npm run dev
+# 2. Usa la extensión "REST Client" en VS Code
+# 3. Haz clic en "Send Request" sobre cada petición
+# 4. Los IDs pueden cambiar después de crear/eliminar cursos
+# 5. Reemplaza los IDs en las pruebas según sea necesario
+

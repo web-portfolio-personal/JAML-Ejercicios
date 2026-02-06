@@ -1,0 +1,29 @@
+{
+  "name": "jaml-ejercicios",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch  --env-file=.env src/index.js",
+    "start": "node --env-file=.env src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/web-portfolio-personal/JAML-Ejercicios.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/web-portfolio-personal/JAML-Ejercicios/issues"
+  },
+  "homepage": "https://github.com/web-portfolio-personal/JAML-Ejercicios#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "zod": "^4.3.6"
+  }
+}
