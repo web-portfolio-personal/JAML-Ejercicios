@@ -18,9 +18,9 @@ GET {{baseUrl}}/
 # Verifica el estado del servidor
 GET {{baseUrl}}/health
 
-### ==========================================
-### GET /api/cursos/programacion - Listar todos los cursos
-### ==========================================
+# ==========================================
+# GET /api/cursos/programacion - Listar todos los cursos
+# ==========================================
 
 ### Obtener todos los cursos
 GET {{apiUrl}}/cursos/programacion
@@ -43,9 +43,9 @@ GET {{apiUrl}}/cursos/programacion?orden=titulo
 ### Combinar filtros: nivel básico ordenado por vistas
 GET {{apiUrl}}/cursos/programacion?nivel=basico&orden=vistas
 
-### ==========================================
-### GET /api/cursos/programacion/:id - Obtener un curso específico
-### ==========================================
+// ==========================================
+// GET /api/cursos/programacion/:id - Obtener un curso específico
+// ==========================================
 
 ### Obtener curso con ID 1
 GET {{apiUrl}}/cursos/programacion/1
@@ -59,9 +59,9 @@ GET {{apiUrl}}/cursos/programacion/3
 ### Error: Curso no existente (ID 999)
 GET {{apiUrl}}/cursos/programacion/999
 
-### ==========================================
-### POST /api/cursos/programacion - Crear nuevo curso
-### ==========================================
+// ==========================================
+// POST /api/cursos/programacion - Crear nuevo curso
+// ==========================================
 
 ### Crear curso completo de React
 POST {{apiUrl}}/cursos/programacion
@@ -150,11 +150,12 @@ Content-Type: application/json
   "nivel": "basico"
 }
 
+
+### Actualizar solo el título del curso 1
+
 ### ==========================================
 ### PATCH /api/cursos/programacion/:id - Actualización parcial
 ### ==========================================
-
-### Actualizar solo el título del curso 1
 PATCH {{apiUrl}}/cursos/programacion/1
 Content-Type: application/json
 
@@ -188,11 +189,12 @@ Content-Type: application/json
   "titulo": "No existe"
 }
 
+
+### Eliminar curso con ID 1
+
 ### ==========================================
 ### DELETE /api/cursos/programacion/:id - Eliminar curso
 ### ==========================================
-
-### Eliminar curso con ID 1
 DELETE {{apiUrl}}/cursos/programacion/1
 
 ### Eliminar curso con ID 2
@@ -201,9 +203,9 @@ DELETE {{apiUrl}}/cursos/programacion/2
 ### Error: Eliminar curso no existente
 DELETE {{apiUrl}}/cursos/programacion/999
 
-### ==========================================
-### Pruebas de Error
-### ==========================================
+//### ==========================================
+//### Pruebas de Error
+//### ==========================================
 
 ### Ruta no existente (404)
 GET {{baseUrl}}/ruta-inexistente
@@ -211,12 +213,215 @@ GET {{baseUrl}}/ruta-inexistente
 ### Endpoint de API no existente
 GET {{apiUrl}}/cursos/diseño
 
-### ==========================================
-### 📝 Notas de Uso
-### ==========================================
+//### ==========================================
+//### 📝 Notas de Uso
+//### ==========================================
 # 1. Ejecuta el servidor: npm run dev
 # 2. Usa la extensión "REST Client" en VS Code
 # 3. Haz clic en "Send Request" sobre cada petición
 # 4. Los IDs pueden cambiar después de crear/eliminar cursos
 # 5. Reemplaza los IDs en las pruebas según sea necesario
+
+//### ==========================================
+//### 👥 USUARIOS API
+//### ==========================================
+
+# ==========================================
+# GET /api/usuarios - Listar todos los usuarios
+# ==========================================
+
+### Obtener todos los usuarios
+GET {{apiUrl}}/usuarios
+
+### Filtrar por nivel junior
+GET {{apiUrl}}/usuarios?nivel=junior
+
+### Filtrar por nivel mid-senior
+GET {{apiUrl}}/usuarios?nivel=mid-senior
+
+### Filtrar por nivel senior
+GET {{apiUrl}}/usuarios?nivel=senior
+
+### Ordenar por nombre (alfabético)
+GET {{apiUrl}}/usuarios?orden=name
+
+### Ordenar por nivel (junior -> mid-senior -> senior)
+GET {{apiUrl}}/usuarios?orden=nivel
+
+### Combinar filtros: nivel junior ordenado por nombre
+GET {{apiUrl}}/usuarios?nivel=junior&orden=name
+
+// ==========================================
+// GET /api/usuarios/:id - Obtener un usuario específico
+// ==========================================
+
+### Obtener usuario con ID 1
+GET {{apiUrl}}/usuarios/1
+
+### Obtener usuario con ID 2
+GET {{apiUrl}}/usuarios/2
+
+### Obtener usuario con ID 3
+GET {{apiUrl}}/usuarios/3
+
+### Error: Usuario no existente (ID 999)
+GET {{apiUrl}}/usuarios/999
+
+// ==========================================
+// POST /api/usuarios - Crear nuevo usuario
+// ==========================================
+
+### Crear usuario junior
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "Laura Fernández",
+  "nivel": "junior"
+}
+
+### Crear usuario mid-senior
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "Roberto Díaz",
+  "nivel": "mid-senior"
+}
+
+### Crear usuario senior
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "Elena Moreno",
+  "nivel": "senior"
+}
+
+### Error: Datos incompletos (falta name)
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nivel": "junior"
+}
+
+### Error: Datos incompletos (falta nivel)
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "Usuario Sin Nivel"
+}
+
+### Error: Nivel inválido
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "Usuario Test",
+  "nivel": "experto"
+}
+
+### Error: Nombre muy corto
+POST {{apiUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "name": "A",
+  "nivel": "junior"
+}
+
+
+### Actualizar usuario con ID 1 (reemplazo completo)
+
+### ==========================================
+//### PUT /api/usuarios/:id - Actualizar usuario completo
+//### ==========================================
+PUT {{apiUrl}}/usuarios/1
+Content-Type: application/json
+
+{
+  "name": "Juan García Actualizado",
+  "nivel": "mid-senior"
+}
+
+### Actualizar usuario con ID 2
+PUT {{apiUrl}}/usuarios/2
+Content-Type: application/json
+
+{
+  "name": "María López Senior",
+  "nivel": "senior"
+}
+
+### Error: Actualizar usuario no existente
+PUT {{apiUrl}}/usuarios/999
+Content-Type: application/json
+
+{
+  "name": "Usuario Fantasma",
+  "nivel": "junior"
+}
+
+
+### Actualizar solo el nombre del usuario 1
+
+### ==========================================
+### PATCH /api/usuarios/:id - Actualización parcial
+### ==========================================
+PATCH {{apiUrl}}/usuarios/1
+Content-Type: application/json
+
+{
+  "name": "Juan García Modificado"
+}
+
+### Actualizar solo el nivel del usuario 2
+PATCH {{apiUrl}}/usuarios/2
+Content-Type: application/json
+
+{
+  "nivel": "senior"
+}
+
+### Actualizar múltiples campos del usuario 3
+PATCH {{apiUrl}}/usuarios/3
+Content-Type: application/json
+
+{
+  "name": "Carlos Rodríguez Tech Lead",
+  "nivel": "senior"
+}
+
+### Error: Actualizar parcialmente usuario no existente
+PATCH {{apiUrl}}/usuarios/999
+Content-Type: application/json
+
+{
+  "name": "No existe"
+}
+
+### Error: Nivel inválido en PATCH
+PATCH {{apiUrl}}/usuarios/1
+Content-Type: application/json
+
+{
+  "nivel": "principiante"
+}
+
+
+### Eliminar usuario con ID 4
+
+### ==========================================
+### DELETE /api/usuarios/:id - Eliminar usuario
+### ==========================================
+DELETE {{apiUrl}}/usuarios/4
+
+### Eliminar usuario con ID 5
+DELETE {{apiUrl}}/usuarios/5
+
+### Error: Eliminar usuario no existente
+DELETE {{apiUrl}}/usuarios/999
+
 

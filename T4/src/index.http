@@ -1,0 +1,354 @@
+### ==========================================
+### 🚀 T4 - Todo API con Express
+### Lista de Tareas con Validación Pro
+### ==========================================
+
+### Variables de configuración
+@baseUrl = http://localhost:3000
+@apiUrl = {{baseUrl}}/api
+
+### ==========================================
+### 🏠 Rutas Básicas
+### ==========================================
+
+### GET / - Información de la API
+GET {{apiUrl}}/
+
+### GET /health - Health Check
+GET {{baseUrl}}/health
+
+### ==========================================
+### 📋 GET /api/todos - Listar Tareas
+### ==========================================
+
+### Obtener todas las tareas
+GET {{apiUrl}}/todos
+
+### Filtrar por tareas completadas
+GET {{apiUrl}}/todos?completed=true
+
+### Filtrar por tareas pendientes
+GET {{apiUrl}}/todos?completed=false
+
+### Filtrar por prioridad alta
+GET {{apiUrl}}/todos?priority=high
+
+### Filtrar por prioridad media
+GET {{apiUrl}}/todos?priority=medium
+
+### Filtrar por prioridad baja
+GET {{apiUrl}}/todos?priority=low
+
+### Filtrar por tag específico
+GET {{apiUrl}}/todos?tag=trabajo
+
+### Filtrar por tag "programacion"
+GET {{apiUrl}}/todos?tag=programacion
+
+### Ordenar por fecha de vencimiento (ascendente)
+GET {{apiUrl}}/todos?sortBy=dueDate&order=asc
+
+### Ordenar por fecha de vencimiento (descendente)
+GET {{apiUrl}}/todos?sortBy=dueDate&order=desc
+
+### Ordenar por fecha de creación
+GET {{apiUrl}}/todos?sortBy=createdAt&order=desc
+
+### Ordenar por prioridad
+GET {{apiUrl}}/todos?sortBy=priority&order=desc
+
+### Ordenar por título alfabéticamente
+GET {{apiUrl}}/todos?sortBy=title&order=asc
+
+### Combinar filtros: prioridad alta, pendientes, ordenado por fecha
+GET {{apiUrl}}/todos?priority=high&completed=false&sortBy=dueDate
+
+### BONUS: Búsqueda fuzzy en título
+GET {{apiUrl}}/todos?search=ejercicio
+
+### BONUS: Búsqueda fuzzy con otro término
+GET {{apiUrl}}/todos?search=documentacion
+
+### ==========================================
+### 📊 GET /api/todos/stats - BONUS: Estadísticas
+### ==========================================
+
+### Obtener estadísticas de tareas
+GET {{apiUrl}}/todos/stats
+
+### ==========================================
+### 🔍 GET /api/todos/:id - Obtener una tarea
+### ==========================================
+
+### ⚠️ NOTA: Reemplaza estos IDs con UUIDs reales de tus tareas
+### Puedes obtenerlos haciendo GET /api/todos primero
+
+### Obtener tarea por ID (usa un ID real)
+# GET {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+### Error: Tarea no existente (UUID inválido)
+GET {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+
+### Error: ID no es UUID válido
+GET {{apiUrl}}/todos/123
+
+### ==========================================
+### ➕ POST /api/todos - Crear Tarea
+### ==========================================
+
+### Crear tarea completa con todos los campos
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Implementar autenticación JWT",
+    "description": "Agregar sistema de login con tokens JWT para la API",
+    "priority": "high",
+    "completed": false,
+    "dueDate": "2026-03-01T23:59:59Z",
+    "tags": ["trabajo", "seguridad", "backend"]
+}
+
+### Crear tarea con campos mínimos requeridos
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Revisar código del PR",
+    "priority": "medium"
+}
+
+### Crear tarea con tags
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Escribir tests unitarios",
+    "description": "Cubrir al menos 80% del código",
+    "priority": "medium",
+    "tags": ["testing", "calidad"]
+}
+
+### Crear tarea de prioridad baja
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Actualizar README del proyecto",
+    "priority": "low",
+    "tags": ["documentacion"]
+}
+
+### Error: Título muy corto (menos de 3 caracteres)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "AB",
+    "priority": "high"
+}
+
+### Error: Título muy largo (más de 100 caracteres)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Este es un título extremadamente largo que supera el límite de cien caracteres permitidos por el esquema de validación de Zod configurado en la API",
+    "priority": "medium"
+}
+
+### Error: Prioridad inválida
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con prioridad incorrecta",
+    "priority": "urgente"
+}
+
+### Error: Fecha de vencimiento en el pasado
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con fecha pasada",
+    "priority": "medium",
+    "dueDate": "2020-01-01T00:00:00Z"
+}
+
+### Error: Más de 5 tags
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con demasiados tags",
+    "priority": "low",
+    "tags": ["uno", "dos", "tres", "cuatro", "cinco", "seis"]
+}
+
+### Error: Falta campo requerido (priority)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea sin prioridad"
+}
+
+### Error: Falta campo requerido (title)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "priority": "high"
+}
+
+### ==========================================
+### ✏️ PUT /api/todos/:id - Actualizar Tarea Completa
+### ==========================================
+
+### ⚠️ NOTA: Reemplaza el ID con un UUID real de una tarea existente
+
+### Actualizar tarea completa (reemplaza :id con UUID real)
+# PUT {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# Content-Type: application/json
+#
+# {
+#     "title": "Tarea actualizada completamente",
+#     "description": "Nueva descripción de la tarea",
+#     "priority": "high",
+#     "completed": true,
+#     "dueDate": "2026-04-15T18:00:00Z",
+#     "tags": ["actualizado", "importante"]
+# }
+
+### Error: Actualizar tarea que no existe
+PUT {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+    "title": "Esta tarea no existe",
+    "priority": "medium"
+}
+
+### ==========================================
+### 🔄 PATCH /api/todos/:id - Actualización Parcial
+### ==========================================
+
+### ⚠️ NOTA: Reemplaza el ID con un UUID real de una tarea existente
+
+### Actualizar solo la prioridad
+# PATCH {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# Content-Type: application/json
+#
+# {
+#     "priority": "high"
+# }
+
+### Actualizar solo la descripción
+# PATCH {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# Content-Type: application/json
+#
+# {
+#     "description": "Nueva descripción actualizada parcialmente"
+# }
+
+### Actualizar solo los tags
+# PATCH {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# Content-Type: application/json
+#
+# {
+#     "tags": ["nuevo-tag", "otro-tag"]
+# }
+
+### ==========================================
+### ✅ PATCH /api/todos/:id/toggle - Cambiar Estado
+### ==========================================
+
+### ⚠️ NOTA: Reemplaza el ID con un UUID real de una tarea existente
+
+### Toggle: cambiar estado de completada
+# PATCH {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/toggle
+
+### Error: Toggle en tarea que no existe
+PATCH {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000/toggle
+
+### ==========================================
+### 🗑️ DELETE /api/todos/:id - Eliminar Tarea
+### ==========================================
+
+### ⚠️ NOTA: Reemplaza el ID con un UUID real de una tarea existente
+
+### Eliminar tarea
+# DELETE {{apiUrl}}/todos/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+### Error: Eliminar tarea que no existe
+DELETE {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+
+### ==========================================
+### 🧪 FLUJO COMPLETO DE PRUEBA
+### ==========================================
+
+### 1️⃣ Primero: Ver todas las tareas iniciales
+GET {{apiUrl}}/todos
+
+### 2️⃣ Crear una nueva tarea de prueba
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea de prueba para flujo completo",
+    "description": "Esta tarea se usará para probar el flujo CRUD",
+    "priority": "high",
+    "dueDate": "2026-06-15T12:00:00Z",
+    "tags": ["test", "flujo"]
+}
+
+### 3️⃣ Copiar el ID de la respuesta anterior y usarlo en las siguientes peticiones
+### Reemplaza TASK_ID con el UUID real
+
+### 4️⃣ Obtener la tarea creada
+# GET {{apiUrl}}/todos/TASK_ID
+
+### 5️⃣ Actualizar parcialmente (cambiar prioridad)
+# PATCH {{apiUrl}}/todos/TASK_ID
+# Content-Type: application/json
+#
+# {
+#     "priority": "medium"
+# }
+
+### 6️⃣ Toggle: marcar como completada
+# PATCH {{apiUrl}}/todos/TASK_ID/toggle
+
+### 7️⃣ Verificar que está completada
+# GET {{apiUrl}}/todos/TASK_ID
+
+### 8️⃣ Ver estadísticas actualizadas
+GET {{apiUrl}}/todos/stats
+
+### 9️⃣ Eliminar la tarea de prueba
+# DELETE {{apiUrl}}/todos/TASK_ID
+
+### 🔟 Verificar que se eliminó
+GET {{apiUrl}}/todos
+
+### ==========================================
+### ⚡ BONUS: Rate Limiting Test
+### ==========================================
+
+### Si ejecutas más de 100 requests en 1 minuto, verás error 429
+### Observa los headers X-RateLimit-* en las respuestas
+
+### ==========================================
+### 📝 NOTAS
+### ==========================================
+
+# 1. Los IDs son UUIDs generados automáticamente
+# 2. dueDate debe estar en formato ISO 8601 y ser una fecha futura
+# 3. priority solo acepta: 'low', 'medium', 'high'
+# 4. title debe tener entre 3 y 100 caracteres
+# 5. description es opcional y máximo 500 caracteres
+# 6. tags es un array de strings, máximo 5 elementos
+# 7. El servidor incluye logging con timestamps
+# 8. Rate limiting: máximo 100 requests por minuto
+

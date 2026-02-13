@@ -19,6 +19,10 @@ export class ApiError extends Error {
     static internal(message = 'Error interno del servidor') {
         return new ApiError(500, message);
     }
+
+    static tooManyRequests(message = 'Demasiadas solicitudes') {
+        return new ApiError(429, message);
+    }
 }
 
 export const notFoundHandler = (req, res, next) => {
@@ -30,7 +34,7 @@ export const notFoundHandler = (req, res, next) => {
 };
 
 export const errorHandler = (err, req, res, next) => {
-    console.error('Error:', err);
+    console.error('❌ Error:', err);
 
     if (err.isOperational) {
         return res.status(err.statusCode).json({
