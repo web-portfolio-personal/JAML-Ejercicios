@@ -6,7 +6,9 @@ const WINDOW_MS = 60 * 1000; // 1 minuto
 const MAX_REQUESTS = 100;
 
 export const rateLimiter = (req, res, next) => {
-    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    // req.ip es la opción preferida en Express
+    // req.socket.remoteAddress es el fallback moderno (req.connection está deprecado)
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
 
     // Obtener o crear registro para esta IP

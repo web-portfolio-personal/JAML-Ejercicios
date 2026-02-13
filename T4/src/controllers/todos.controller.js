@@ -5,7 +5,9 @@ import { ApiError } from '../middleware/errorHandler.js';
 // GET /api/todos - Listar todas las tareas (con filtros)
 export const getAll = (req, res) => {
     let resultado = [...todos];
-    const { completed, priority, tag, sortBy, order, search } = req.query;
+    const { completed, priority, tag, sortBy, search } = req.query;
+    // order tiene valor por defecto 'asc' si no se especifica
+    const order = req.query.order || 'asc';
 
     // BONUS: Búsqueda fuzzy en título
     if (search) {
@@ -129,11 +131,11 @@ export const create = (req, res) => {
     const nuevaTarea = {
         id: generateUUID(),
         title,
-        description: description || null,
+        description: description ?? null,
         priority,
-        completed: completed || false,
-        dueDate: dueDate || null,
-        tags: tags || [],
+        completed: completed ?? false,
+        dueDate: dueDate ?? null,
+        tags: tags ?? [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -143,7 +145,7 @@ export const create = (req, res) => {
     res.status(201).json(nuevaTarea);
 };
 
-// PUT /api/todos/:id - Actualizar tarea completa
+// PUT /api/todos/:id - Actualizar tarea completa (reemplazo total)
 export const update = (req, res) => {
     const { id } = req.params;
     const index = todos.findIndex(t => t.id === id);
@@ -152,16 +154,17 @@ export const update = (req, res) => {
         throw ApiError.notFound(`Tarea con ID ${id} no encontrada`);
     }
 
+    // En PUT todos los campos son requeridos (validados por Zod)
     const { title, description, priority, completed, dueDate, tags } = req.body;
 
     todos[index] = {
         id,
         title,
-        description: description || null,
+        description: description ?? null,
         priority,
-        completed: completed !== undefined ? completed : todos[index].completed,
-        dueDate: dueDate || null,
-        tags: tags || [],
+        completed, // Requerido en PUT, no necesita fallback
+        dueDate: dueDate ?? null,
+        tags, // Requerido en PUT, no necesita fallback
         createdAt: todos[index].createdAt,
         updatedAt: new Date().toISOString()
     };
@@ -184,10 +187,7 @@ export const toggle = (req, res) => {
         updatedAt: new Date().toISOString()
     };
 
-    res.json({
-        mensaje: `Tarea marcada como ${todos[index].completed ? 'completada' : 'pendiente'}`,
-        data: todos[index]
-    });
+    res.json(todos[index]);
 };
 
 // PATCH /api/todos/:id - Actualización parcial
@@ -199,9 +199,20 @@ export const partialUpdate = (req, res) => {
         throw ApiError.notFound(`Tarea con ID ${id} no encontrada`);
     }
 
+    // Extraer solo los campos permitidos para evitar sobrescribir id, createdAt, etc.
+    const { title, description, priority, completed, dueDate, tags } = req.body;
+    const updates = {};
+
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (priority !== undefined) updates.priority = priority;
+    if (completed !== undefined) updates.completed = completed;
+    if (dueDate !== undefined) updates.dueDate = dueDate;
+    if (tags !== undefined) updates.tags = tags;
+
     todos[index] = {
         ...todos[index],
-        ...req.body,
+        ...updates,
         updatedAt: new Date().toISOString()
     };
 
@@ -217,10 +228,7 @@ export const remove = (req, res) => {
         throw ApiError.notFound(`Tarea con ID ${id} no encontrada`);
     }
 
-    const deleted = todos.splice(index, 1)[0];
+    todos.splice(index, 1);
 
-    res.status(200).json({
-        mensaje: 'Tarea eliminada correctamente',
-        data: deleted
-    });
+    res.status(204).end();
 };

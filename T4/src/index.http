@@ -186,6 +186,32 @@ Content-Type: application/json
     "tags": ["uno", "dos", "tres", "cuatro", "cinco", "seis"]
 }
 
+### Error: Tags duplicados
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con tags repetidos",
+    "priority": "medium",
+    "tags": ["trabajo", "trabajo", "urgente"]
+}
+
+### Error: Fecha inválida (30 de febrero no existe)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con fecha inexistente",
+    "priority": "medium",
+    "dueDate": "2026-02-30T00:00:00Z"
+}
+
+### Filtro completed en mayúsculas (debe funcionar)
+GET {{apiUrl}}/todos?completed=TRUE
+
+### Filtro completed mixto (debe funcionar)
+GET {{apiUrl}}/todos?completed=True
+
 ### Error: Falta campo requerido (priority)
 POST {{apiUrl}}/todos
 Content-Type: application/json
@@ -227,7 +253,29 @@ Content-Type: application/json
 
 {
     "title": "Esta tarea no existe",
-    "priority": "medium"
+    "priority": "medium",
+    "completed": false,
+    "tags": []
+}
+
+### Error: PUT sin completed (campo requerido)
+PUT {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+    "title": "Tarea sin completed",
+    "priority": "medium",
+    "tags": []
+}
+
+### Error: PUT sin tags (campo requerido)
+PUT {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+    "title": "Tarea sin tags",
+    "priority": "medium",
+    "completed": false
 }
 
 ### ==========================================
@@ -274,6 +322,7 @@ PATCH {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000/toggle
 
 ### ==========================================
 ### 🗑️ DELETE /api/todos/:id - Eliminar Tarea
+### Devuelve 204 No Content en caso de éxito
 ### ==========================================
 
 ### ⚠️ NOTA: Reemplaza el ID con un UUID real de una tarea existente
@@ -351,4 +400,129 @@ GET {{apiUrl}}/todos
 # 6. tags es un array de strings, máximo 5 elementos
 # 7. El servidor incluye logging con timestamps
 # 8. Rate limiting: máximo 100 requests por minuto
+
+### ==========================================
+### ⚠️ ERRORES 4XX - Errores del Cliente
+### ==========================================
+
+### 400 Bad Request - JSON mal formado
+#POST {{apiUrl}}/todos
+#Content-Type: application/json
+#
+#{ esto no es json valido }
+
+### 400 Bad Request - Título muy corto
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "AB",
+    "priority": "high"
+}
+
+### 400 Bad Request - Prioridad inválida (enum)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con prioridad incorrecta",
+    "priority": "urgente"
+}
+
+### 400 Bad Request - ID no es UUID válido en params
+GET {{apiUrl}}/todos/esto-no-es-uuid
+
+### 400 Bad Request - ID numérico inválido
+GET {{apiUrl}}/todos/12345
+
+### 400 Bad Request - Query param inválido (completed debe ser true/false)
+GET {{apiUrl}}/todos?completed=quizas
+
+### 400 Bad Request - Query param inválido (priority)
+GET {{apiUrl}}/todos?priority=super-alta
+
+### 400 Bad Request - Query param inválido (sortBy)
+GET {{apiUrl}}/todos?sortBy=random
+
+### 400 Bad Request - Fecha con formato incorrecto
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con fecha mal formateada",
+    "priority": "medium",
+    "dueDate": "15/03/2026"
+}
+
+### 400 Bad Request - Fecha en el pasado
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con fecha pasada",
+    "priority": "medium",
+    "dueDate": "2020-01-01T00:00:00Z"
+}
+
+### 400 Bad Request - Demasiados tags (más de 5)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con demasiados tags",
+    "priority": "low",
+    "tags": ["uno", "dos", "tres", "cuatro", "cinco", "seis"]
+}
+
+### 400 Bad Request - Falta campo requerido (title)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "priority": "high"
+}
+
+### 400 Bad Request - Falta campo requerido (priority)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea sin prioridad"
+}
+
+### 400 Bad Request - Descripción muy larga (más de 500 caracteres)
+POST {{apiUrl}}/todos
+Content-Type: application/json
+
+{
+    "title": "Tarea con descripción larga",
+    "priority": "medium",
+    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore."
+}
+
+### 404 Not Found - Tarea no existe
+GET {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+
+### 404 Not Found - Toggle en tarea inexistente
+PATCH {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000/toggle
+
+### 404 Not Found - Actualizar tarea inexistente
+PUT {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+    "title": "Esta tarea no existe",
+    "priority": "medium"
+}
+
+### 404 Not Found - Eliminar tarea inexistente
+DELETE {{apiUrl}}/todos/00000000-0000-0000-0000-000000000000
+
+### 404 Not Found - Ruta que no existe
+GET {{apiUrl}}/ruta-inexistente
+
+### 429 Too Many Requests - Rate limiting
+# Ejecuta muchas peticiones rápidamente para ver este error
+# Límite: 100 requests por minuto
+
 
