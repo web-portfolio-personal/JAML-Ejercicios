@@ -1,19 +1,20 @@
 {
-  "name": "t4-todo-api",
+  "name": "t5-mvc-mongodb",
   "version": "1.0.0",
-  "description": "API de tareas (todos) con Express, middleware personalizado y validación con Zod",
-  "main": "src/index.js",
+  "description": "API MVC con Express, MongoDB, Mongoose y validación con Zod",
+  "main": "src/app.js",
   "scripts": {
-    "dev": "node --watch --env-file=.env src/app.js",
-    "start": "node --env-file=.env src/app.js",
+    "dev": "node --watch src/app.js",
+    "start": "node src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "express",
     "api",
-    "todos",
-    "zod",
-    "validation"
+    "mvc",
+    "mongodb",
+    "mongoose",
+    "zod"
   ],
   "author": "",
   "license": "ISC",

@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const router = Router();
 
@@ -15,7 +16,9 @@ const routeFiles = readdirSync(__dirname).filter(
 
 for (const file of routeFiles) {
     const routeName = file.replace('.routes.js', '');
-    const routeModule = await import(join(__dirname, file));
+    // pathToFileURL convierte la ruta a formato file:// (necesario en Windows)
+    const fileUrl = pathToFileURL(join(__dirname, file));
+    const routeModule = await import(fileUrl);
     router.use(`/${routeName}`, routeModule.default);
     console.log(`📍 Ruta cargada: /api/${routeName}`);
 }

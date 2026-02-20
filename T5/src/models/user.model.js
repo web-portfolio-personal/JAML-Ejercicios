@@ -47,8 +47,7 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// Índices para mejorar rendimiento
-userSchema.index({ email: 1 });
+// Índice compuesto para filtros frecuentes
 userSchema.index({ role: 1, isActive: 1 });
 
 // Ocultar password al convertir a JSON

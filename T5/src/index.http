@@ -1,0 +1,345 @@
+### =============================================
+### T5 - API MVC con MongoDB (Mongoose + Zod)
+### Pruebas HTTP
+### =============================================
+
+@baseUrl = http://localhost:3000/api
+
+### =============================================
+### HEALTH CHECK
+### =============================================
+
+### Health check
+GET http://localhost:3000/health
+
+### =============================================
+### USUARIOS (USERS) - CRUD
+### =============================================
+
+### 1. Crear usuario 1 (admin)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Juan Pérez",
+    "email": "juan@ejemplo.com",
+    "password": "password123",
+    "role": "admin"
+}
+
+### 2. Crear usuario 2 (user)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "María García",
+    "email": "maria@ejemplo.com",
+    "password": "password456",
+    "role": "user"
+}
+
+### 3. Crear usuario 3 (user)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Carlos López",
+    "email": "carlos@ejemplo.com",
+    "password": "password789"
+}
+
+### 4. Listar todos los usuarios
+GET http://localhost:3000/api/users
+
+### 5. Listar usuarios con paginación
+GET http://localhost:3000/api/users?page=1&limit=2
+
+### 6. Filtrar solo admins
+GET http://localhost:3000/api/users?role=admin
+
+### 7. Filtrar usuarios activos
+GET http://localhost:3000/api/users?isActive=true
+
+### 8. Obtener usuario por ID (⚠️ reemplazar con ID real)
+GET http://localhost:3000/api/users/683699ba4fca91f6e05ece4e
+
+### 9. Actualizar usuario (⚠️ reemplazar con ID real)
+PUT http://localhost:3000/api/users/683699ba4fca91f6e05ece4e
+Content-Type: application/json
+
+{
+    "name": "Juan Pérez Actualizado"
+}
+
+### 10. Eliminar usuario (⚠️ reemplazar con ID real)
+DELETE http://localhost:3000/api/users/683699ba4fca91f6e05ece4e
+
+### =============================================
+### USUARIOS - PRUEBAS DE ERROR
+### =============================================
+
+### ❌ Crear usuario sin campos requeridos (400 - falta email y password)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Sin Email"
+}
+
+### ❌ Crear usuario con nombre muy corto (400 - min 2 chars)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "A",
+    "email": "corto@test.com",
+    "password": "password123"
+}
+
+### ❌ Crear usuario con email inválido (400)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Test",
+    "email": "no-es-email",
+    "password": "password123"
+}
+
+### ❌ Crear usuario con contraseña muy corta (400)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Test",
+    "email": "test@test.com",
+    "password": "123"
+}
+
+### ❌ Crear usuario con email duplicado (409 - si ya existe)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Juan Clon",
+    "email": "juan@ejemplo.com",
+    "password": "password123"
+}
+
+### ❌ Crear usuario con rol inválido (400)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Test",
+    "email": "test2@test.com",
+    "password": "password123",
+    "role": "superadmin"
+}
+
+### ❌ Crear usuario con campos extra no permitidos (400 - strict)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "Test",
+    "email": "test3@test.com",
+    "password": "password123",
+    "hackerField": "malicious"
+}
+
+### ❌ Actualizar usuario con body vacío (422)
+PUT http://localhost:3000/api/users/683699ba4fca91f6e05ece4e
+Content-Type: application/json
+
+{}
+
+### ❌ Obtener usuario con ID inválido (400)
+GET http://localhost:3000/api/users/id-invalido
+
+### ❌ Obtener usuario que no existe (404)
+GET http://localhost:3000/api/users/507f1f77bcf86cd799439011
+
+### =============================================
+### TRACKS (CANCIONES) - CRUD
+### =============================================
+
+### 1. Crear track 1 (⚠️ reemplazar artist con ID de usuario real)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Bohemian Rhapsody",
+    "duration": 355,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock", "opera"]
+}
+
+### 2. Crear track 2 con colaboradores (⚠️ reemplazar IDs con reales)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Despacito Remix",
+    "duration": 230,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "collaborators": ["683699d74fca91f6e05ece52"],
+    "genres": ["reggaeton", "pop"]
+}
+
+### 3. Crear track 3
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Shape of You",
+    "duration": 263,
+    "artist": "683699d74fca91f6e05ece52",
+    "genres": ["pop", "dance"],
+    "releaseDate": "2025-01-06T00:00:00.000Z"
+}
+
+### 4. Listar todos los tracks (con populate de artist y collaborators)
+GET http://localhost:3000/api/tracks
+
+### 5. Listar tracks con paginación
+GET http://localhost:3000/api/tracks?page=1&limit=2
+
+### 6. Filtrar tracks por género
+GET http://localhost:3000/api/tracks?genre=rock
+
+### 7. Filtrar tracks por artista (⚠️ reemplazar con ID real)
+GET http://localhost:3000/api/tracks?artist=683699ba4fca91f6e05ece4e
+
+### 8. Ordenar tracks por título ascendente
+GET http://localhost:3000/api/tracks?sortBy=title&order=asc
+
+### 9. Ordenar tracks por duración descendente
+GET http://localhost:3000/api/tracks?sortBy=duration&order=desc
+
+### 10. Obtener track por ID (⚠️ reemplazar con ID real)
+GET http://localhost:3000/api/tracks/REEMPLAZAR_CON_ID_REAL
+
+### 11. Actualizar track (⚠️ reemplazar con ID real)
+PUT http://localhost:3000/api/tracks/REEMPLAZAR_CON_ID_REAL
+Content-Type: application/json
+
+{
+    "title": "Bohemian Rhapsody (Remastered)"
+}
+
+### 12. Eliminar track (⚠️ reemplazar con ID real)
+DELETE http://localhost:3000/api/tracks/REEMPLAZAR_CON_ID_REAL
+
+### =============================================
+### TRACKS - PRUEBAS DE ERROR
+### =============================================
+
+### ❌ Crear track sin título (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock"]
+}
+
+### ❌ Crear track con título muy corto (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "AB",
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock"]
+}
+
+### ❌ Crear track sin géneros (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track sin género",
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": []
+}
+
+### ❌ Crear track con géneros duplicados (422)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track duplicados",
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock", "rock"]
+}
+
+### ❌ Crear track con duración negativa (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track con duración negativa",
+    "duration": -5,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock"]
+}
+
+### ❌ Crear track con artist inválido (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track con artist inválido",
+    "duration": 200,
+    "artist": "no-es-un-id",
+    "genres": ["rock"]
+}
+
+### ❌ Crear track con campos no permitidos (400 - strict)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track con campo extra",
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock"],
+    "campoNoPermitido": "valor"
+}
+
+### ❌ Crear track con fecha inválida (400)
+POST http://localhost:3000/api/tracks
+Content-Type: application/json
+
+{
+    "title": "Track con fecha mala",
+    "duration": 200,
+    "artist": "683699ba4fca91f6e05ece4e",
+    "genres": ["rock"],
+    "releaseDate": "no-es-una-fecha"
+}
+
+### ❌ Actualizar track con body vacío (422)
+PUT http://localhost:3000/api/tracks/683699ba4fca91f6e05ece4e
+Content-Type: application/json
+
+{}
+
+### ❌ Obtener track con ID inválido (400)
+GET http://localhost:3000/api/tracks/id-invalido
+
+### ❌ Obtener track que no existe (404)
+GET http://localhost:3000/api/tracks/507f1f77bcf86cd799439011
+
+### =============================================
+### RUTA NO ENCONTRADA (404)
+### =============================================
+
+### ❌ Ruta que no existe
+GET http://localhost:3000/api/ruta-inexistente
+
