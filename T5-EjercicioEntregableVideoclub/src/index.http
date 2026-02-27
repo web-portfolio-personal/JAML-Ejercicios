@@ -1,0 +1,544 @@
+### =============================================
+### T5 - BlockBuster API (Videoclub)
+### API MVC con MongoDB, Mongoose, Zod y Multer
+### =============================================
+### Los IDs se capturan automáticamente de las respuestas
+### Ejecutar las peticiones en orden secuencial
+### =============================================
+
+@baseUrl = http://localhost:3000/api
+
+### =============================================
+### HEALTH CHECK
+### =============================================
+
+### Health check
+GET http://localhost:3000/health
+
+### =============================================
+### CREAR PELÍCULAS (POST)
+### =============================================
+
+### 1. Crear película - The Matrix (action)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "The Matrix",
+    "director": "Wachowski Sisters",
+    "year": 1999,
+    "genre": "action",
+    "copies": 5
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId1", response.body.data._id);
+        client.log("Matrix ID: " + response.body.data._id);
+    }
+%}
+
+### 2. Crear película - Superbad (comedy)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Superbad",
+    "director": "Greg Mottola",
+    "year": 2007,
+    "genre": "comedy",
+    "copies": 3
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId2", response.body.data._id);
+        client.log("Superbad ID: " + response.body.data._id);
+    }
+%}
+
+### 3. Crear película - The Shawshank Redemption (drama)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "The Shawshank Redemption",
+    "director": "Frank Darabont",
+    "year": 1994,
+    "genre": "drama",
+    "copies": 4
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId3", response.body.data._id);
+        client.log("Shawshank ID: " + response.body.data._id);
+    }
+%}
+
+### 4. Crear película - Alien (horror)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Alien",
+    "director": "Ridley Scott",
+    "year": 1979,
+    "genre": "horror",
+    "copies": 2
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId4", response.body.data._id);
+        client.log("Alien ID: " + response.body.data._id);
+    }
+%}
+
+### 5. Crear película - Blade Runner 2049 (scifi)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Blade Runner 2049",
+    "director": "Denis Villeneuve",
+    "year": 2017,
+    "genre": "scifi",
+    "copies": 6
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId5", response.body.data._id);
+        client.log("Blade Runner ID: " + response.body.data._id);
+    }
+%}
+
+### 6. Crear película - Interstellar (scifi, copies por defecto = 5)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Interstellar",
+    "director": "Christopher Nolan",
+    "year": 2014,
+    "genre": "scifi"
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId6", response.body.data._id);
+        client.log("Interstellar ID: " + response.body.data._id);
+    }
+%}
+
+### =============================================
+### LISTAR Y FILTRAR (GET)
+### =============================================
+
+### 7. Listar todas las películas
+GET {{baseUrl}}/movies
+
+### 8. Paginación (página 1, 2 por página)
+GET {{baseUrl}}/movies?page=1&limit=2
+
+### 9. Paginación (página 2)
+GET {{baseUrl}}/movies?page=2&limit=2
+
+### 10. Filtrar por género: comedy
+GET {{baseUrl}}/movies?genre=comedy
+
+### 11. Filtrar por género: scifi
+GET {{baseUrl}}/movies?genre=scifi
+
+### 12. Buscar por título: "matrix" (BONUS)
+GET {{baseUrl}}/movies?search=matrix
+
+### 13. Buscar por título: "blade"
+GET {{baseUrl}}/movies?search=blade
+
+### 14. Solo disponibles (query param, BONUS)
+GET {{baseUrl}}/movies?available=true
+
+### 14b. Ordenar por año ascendente
+GET {{baseUrl}}/movies?sortBy=year&order=asc
+
+### 14c. Ordenar por más alquiladas
+GET {{baseUrl}}/movies?sortBy=timesRented&order=desc
+
+### 14d. Filtrar scifi + ordenar por año
+GET {{baseUrl}}/movies?genre=scifi&sortBy=year&order=asc
+
+### 15. Endpoint dedicado de disponibles (BONUS)
+GET {{baseUrl}}/movies/available
+
+### =============================================
+### OBTENER POR ID
+### =============================================
+
+### 16. Obtener The Matrix por ID
+GET {{baseUrl}}/movies/{{movieId1}}
+
+### =============================================
+### ACTUALIZAR
+### =============================================
+
+### 17. Actualizar título de The Matrix
+PUT {{baseUrl}}/movies/{{movieId1}}
+Content-Type: application/json
+
+{
+    "title": "The Matrix (Remastered)"
+}
+
+### 18. Actualizar género y año de The Matrix
+PUT {{baseUrl}}/movies/{{movieId1}}
+Content-Type: application/json
+
+{
+    "genre": "scifi",
+    "year": 1999
+}
+
+### 19. Actualizar copias de Superbad (recalcula availableCopies)
+PUT {{baseUrl}}/movies/{{movieId2}}
+Content-Type: application/json
+
+{
+    "copies": 10
+}
+
+### =============================================
+### ALQUILER Y DEVOLUCIÓN
+### =============================================
+
+### 20. Alquilar The Matrix
+POST {{baseUrl}}/movies/{{movieId1}}/rent
+
+### 21. Alquilar The Matrix otra vez
+POST {{baseUrl}}/movies/{{movieId1}}/rent
+
+### 22. Alquilar Blade Runner
+POST {{baseUrl}}/movies/{{movieId5}}/rent
+
+### 23. Devolver The Matrix
+POST {{baseUrl}}/movies/{{movieId1}}/return
+
+### 24. Verificar estado de The Matrix tras alquiler/devolución
+GET {{baseUrl}}/movies/{{movieId1}}
+
+### =============================================
+### ESTADÍSTICAS
+### =============================================
+
+### 25. Top 5 películas más alquiladas
+GET {{baseUrl}}/movies/stats/top
+
+### =============================================
+### CARÁTULAS (MULTER)
+### =============================================
+
+### 26. Subir carátula de The Matrix (multipart/form-data)
+PATCH {{baseUrl}}/movies/{{movieId1}}/cover
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="cover"; filename="cover.jpg"
+Content-Type: image/jpeg
+
+< ./test-cover.jpg
+--boundary--
+
+### 27. Obtener carátula de The Matrix
+GET {{baseUrl}}/movies/{{movieId1}}/cover
+
+### =============================================
+### VALORACIONES (BONUS)
+### =============================================
+
+### 28. Valorar The Matrix con 8.5
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{
+    "rating": 8.5
+}
+
+### 29. Valorar The Matrix con 9.0 (media se recalcula)
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{
+    "rating": 9.0
+}
+
+### 30. Valorar Alien con 7.0
+POST {{baseUrl}}/movies/{{movieId4}}/rate
+Content-Type: application/json
+
+{
+    "rating": 7.0
+}
+
+### =============================================
+### ELIMINAR
+### =============================================
+
+### 31. Eliminar Interstellar (también borra carátula si tiene)
+DELETE {{baseUrl}}/movies/{{movieId6}}
+
+### =============================================
+### PRUEBAS DE ERROR — CREAR
+### =============================================
+
+### ❌ Sin campos requeridos (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Incompleta"
+}
+
+### ❌ Título muy corto (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "X",
+    "director": "Test",
+    "year": 2020,
+    "genre": "comedy"
+}
+
+### ❌ Año antes de 1888 (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película antigua",
+    "director": "Test",
+    "year": 1800,
+    "genre": "drama"
+}
+
+### ❌ Año futuro (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película futura",
+    "director": "Test",
+    "year": 2099,
+    "genre": "scifi"
+}
+
+### ❌ Género inválido (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película género malo",
+    "director": "Test",
+    "year": 2020,
+    "genre": "musical"
+}
+
+### ❌ Campo extra no permitido (400 - strict)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película con campo extra",
+    "director": "Test",
+    "year": 2020,
+    "genre": "action",
+    "campoHacker": "malicious"
+}
+
+### ❌ Año como string (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película año string",
+    "director": "Test",
+    "year": "dos mil",
+    "genre": "action"
+}
+
+### ❌ Copias negativas (400)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película copias negativas",
+    "director": "Test",
+    "year": 2020,
+    "genre": "action",
+    "copies": -3
+}
+
+### =============================================
+### PRUEBAS DE ERROR — ACTUALIZAR
+### =============================================
+
+### ❌ Body vacío (422)
+PUT {{baseUrl}}/movies/{{movieId1}}
+Content-Type: application/json
+
+{}
+
+### ❌ ID inválido (400)
+PUT {{baseUrl}}/movies/id-invalido
+Content-Type: application/json
+
+{
+    "title": "Test"
+}
+
+### ❌ Película no existe (404)
+PUT {{baseUrl}}/movies/507f1f77bcf86cd799439011
+Content-Type: application/json
+
+{
+    "title": "No existe"
+}
+
+### =============================================
+### PRUEBAS DE ERROR — OBTENER / ELIMINAR
+### =============================================
+
+### ❌ ID inválido en GET (400)
+GET {{baseUrl}}/movies/id-invalido
+
+### ❌ Película no existe en GET (404)
+GET {{baseUrl}}/movies/507f1f77bcf86cd799439011
+
+### ❌ ID inválido en DELETE (400)
+DELETE {{baseUrl}}/movies/no-es-id
+
+### ❌ Película no existe en DELETE (404)
+DELETE {{baseUrl}}/movies/507f1f77bcf86cd799439011
+
+### =============================================
+### PRUEBAS DE ERROR — ALQUILER (flujo 409)
+### =============================================
+
+### Paso 1: Crear película con 1 sola copia (para probar 409)
+POST {{baseUrl}}/movies
+Content-Type: application/json
+
+{
+    "title": "Película de una copia",
+    "director": "Test Director",
+    "year": 2020,
+    "genre": "drama",
+    "copies": 1
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("movieId1copia", response.body.data._id);
+    }
+%}
+
+### Paso 2: Alquilar (OK)
+POST {{baseUrl}}/movies/{{movieId1copia}}/rent
+
+### Paso 3: ❌ Alquilar de nuevo → 409 Conflict (sin copias)
+POST {{baseUrl}}/movies/{{movieId1copia}}/rent
+
+### Paso 4: Devolver (OK)
+POST {{baseUrl}}/movies/{{movieId1copia}}/return
+
+### Paso 5: ❌ Devolver de nuevo → 409 Conflict (ya están todas)
+POST {{baseUrl}}/movies/{{movieId1copia}}/return
+
+### ❌ Alquilar película que no existe (404)
+POST {{baseUrl}}/movies/507f1f77bcf86cd799439011/rent
+
+### ❌ Alquilar con ID inválido (400)
+POST {{baseUrl}}/movies/id-invalido/rent
+
+### ❌ Devolver película que no existe (404)
+POST {{baseUrl}}/movies/507f1f77bcf86cd799439011/return
+
+### ❌ Devolver con ID inválido (400)
+POST {{baseUrl}}/movies/id-invalido/return
+
+### =============================================
+### PRUEBAS DE ERROR — VALORAR
+### =============================================
+
+### ❌ Sin rating (400)
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{}
+
+### ❌ Rating > 10 (400)
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{
+    "rating": 15
+}
+
+### ❌ Rating negativo (400)
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{
+    "rating": -1
+}
+
+### ❌ Rating como string (400)
+POST {{baseUrl}}/movies/{{movieId1}}/rate
+Content-Type: application/json
+
+{
+    "rating": "buena"
+}
+
+### =============================================
+### PRUEBAS DE ERROR — QUERY PARAMS
+### =============================================
+
+### ❌ Género inválido en filtro (400)
+GET {{baseUrl}}/movies?genre=musical
+
+### ❌ Página inválida (400)
+GET {{baseUrl}}/movies?page=-1
+
+### ❌ Límite inválido (400)
+GET {{baseUrl}}/movies?limit=abc
+
+### ❌ sortBy inválido (400)
+GET {{baseUrl}}/movies?sortBy=campoFalso
+
+### ❌ order inválido (400)
+GET {{baseUrl}}/movies?order=diagonal
+
+### =============================================
+### PRUEBAS DE ERROR — CARÁTULAS
+### =============================================
+
+### ❌ Carátula de película sin cover (404) — usar Superbad (no le hemos subido carátula)
+GET {{baseUrl}}/movies/{{movieId2}}/cover
+
+### ❌ Carátula de película que no existe (404)
+GET {{baseUrl}}/movies/507f1f77bcf86cd799439011/cover
+
+### =============================================
+### RUTA NO ENCONTRADA (404)
+### =============================================
+
+### ❌ Ruta que no existe
+GET http://localhost:3000/api/ruta-inexistente
+
+### =============================================
+### LIMPIEZA — Eliminar película de prueba 409
+### =============================================
+
+### Eliminar película de 1 copia creada para test
+DELETE {{baseUrl}}/movies/{{movieId1copia}}

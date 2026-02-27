@@ -1,7 +1,7 @@
 {
-  "name": "t5-mvc-mongodb",
+  "name": "t5-blockbuster-api",
   "version": "1.0.0",
-  "description": "API MVC con Express, MongoDB, Mongoose y validación con Zod",
+  "description": "BlockBuster API - Videoclub con Express, MongoDB, Mongoose, Zod y Multer",
   "main": "src/app.js",
   "scripts": {
     "dev": "node --watch src/app.js",
