@@ -13,10 +13,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Logger para Slack (solo errores >= 400)
+// Logger para Slack (solo errores >= 400, nunca en tests)
 morganBody(app, {
   noColors: true,
-  skip: (req, res) => res.statusCode < 400,
+  skip: (req, res) => process.env.NODE_ENV === 'test' || res.statusCode < 400,
   stream: loggerStream
 });
 
