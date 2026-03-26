@@ -34,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
+  await mongoose.connection.close();
 });
 
 // ✓ GET /api/podcasts → 200 con array (solo publicados)
