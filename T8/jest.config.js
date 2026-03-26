@@ -9,7 +9,8 @@ export default {
     '/tests/',
     'src/index.js',
     'src/config/db.js',
-    'src/middleware/error.middleware.js'
+    'src/middleware/error.middleware.js',
+    'src/utils/handleLogger.js'
   ],
   verbose: true,
   coverageThreshold: {
