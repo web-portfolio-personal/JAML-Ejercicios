@@ -4,13 +4,9 @@ const options = {
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'API de Tracks - Express con Swagger',
+      title: 'PodcastHub API',
       version: '1.0.0',
-      description: 'API REST con documentación Swagger, testing Jest y monitorización Slack',
-      license: {
-        name: 'MIT',
-        url: 'https://spdx.org/licenses/MIT.html'
-      }
+      description: 'API REST para gestión de podcasts con autenticación JWT, autorización por roles y documentación Swagger'
     },
     servers: [
       {
@@ -20,7 +16,7 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        bearerAuth: {
+        BearerToken: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT'
@@ -29,44 +25,49 @@ const options = {
       schemas: {
         User: {
           type: 'object',
-          required: ['name', 'email', 'password'],
           properties: {
             _id: { type: 'string', example: '65f8b3a2c9d1e20012345678' },
             name: { type: 'string', example: 'Juan Pérez' },
             email: { type: 'string', format: 'email', example: 'juan@ejemplo.com' },
-            password: { type: 'string', format: 'password', example: 'MiPassword123' },
-            age: { type: 'integer', example: 25 },
-            role: { type: 'string', enum: ['user', 'admin'], default: 'user' }
+            role: { type: 'string', enum: ['user', 'admin'], example: 'user' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        Track: {
+        Podcast: {
           type: 'object',
-          required: ['title', 'duration'],
           properties: {
             _id: { type: 'string', example: '65f8b3a2c9d1e20012345678' },
-            title: { type: 'string', example: 'Mi Canción' },
-            artist: { type: 'string', example: '65f8b3a2c9d1e20012345678' },
-            duration: { type: 'integer', example: 180 },
-            genres: {
-              type: 'array',
-              items: { type: 'string' },
-              example: ['rock', 'pop']
-            }
+            title: { type: 'string', example: 'Mi Podcast de Tech' },
+            description: { type: 'string', example: 'Un podcast sobre tecnología y desarrollo' },
+            author: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                name: { type: 'string' },
+                email: { type: 'string' }
+              }
+            },
+            category: { type: 'string', enum: ['tech', 'science', 'history', 'comedy', 'news'], example: 'tech' },
+            duration: { type: 'integer', example: 3600 },
+            episodes: { type: 'integer', example: 5 },
+            published: { type: 'boolean', example: false },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        Login: {
+        AuthResponse: {
           type: 'object',
-          required: ['email', 'password'],
           properties: {
-            email: { type: 'string', format: 'email', example: 'juan@ejemplo.com' },
-            password: { type: 'string', format: 'password', example: 'MiPassword123' }
+            token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+            user: { '$ref': '#/components/schemas/User' }
           }
         },
         Error: {
           type: 'object',
           properties: {
             error: { type: 'boolean', example: true },
-            message: { type: 'string', example: 'Error message' }
+            message: { type: 'string', example: 'Mensaje de error' }
           }
         }
       }
