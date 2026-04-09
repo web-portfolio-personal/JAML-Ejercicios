@@ -13,15 +13,16 @@ export const getStats = async (req, res) => {
       take: limit
     });
 
-    const mostBorrowedBooks = await Promise.all(
-      mostBorrowed.map(async (entry) => {
-        const book = await prisma.book.findUnique({
-          where: { id: entry.bookId },
-          select: { id: true, title: true, author: true, genre: true, isbn: true }
-        });
-        return { ...book, totalLoans: entry._count.bookId };
-      })
-    );
+    const mostBorrowedIds = mostBorrowed.map(e => e.bookId);
+    const mostBorrowedRaw = await prisma.book.findMany({
+      where: { id: { in: mostBorrowedIds } },
+      select: { id: true, title: true, author: true, genre: true, isbn: true }
+    });
+    const mostBorrowedBooks = mostBorrowedIds.map(id => {
+      const book = mostBorrowedRaw.find(b => b.id === id);
+      const entry = mostBorrowed.find(e => e.bookId === id);
+      return { ...book, totalLoans: entry._count.bookId };
+    });
 
     // Best rated books (with at least 1 review)
     const bestRated = await prisma.review.groupBy({
@@ -32,19 +33,20 @@ export const getStats = async (req, res) => {
       take: limit
     });
 
-    const bestRatedBooks = await Promise.all(
-      bestRated.map(async (entry) => {
-        const book = await prisma.book.findUnique({
-          where: { id: entry.bookId },
-          select: { id: true, title: true, author: true, genre: true, isbn: true }
-        });
-        return {
-          ...book,
-          avgRating: Math.round(entry._avg.rating * 100) / 100,
-          totalReviews: entry._count.rating
-        };
-      })
-    );
+    const bestRatedIds = bestRated.map(e => e.bookId);
+    const bestRatedRaw = await prisma.book.findMany({
+      where: { id: { in: bestRatedIds } },
+      select: { id: true, title: true, author: true, genre: true, isbn: true }
+    });
+    const bestRatedBooks = bestRatedIds.map(id => {
+      const book = bestRatedRaw.find(b => b.id === id);
+      const entry = bestRated.find(e => e.bookId === id);
+      return {
+        ...book,
+        avgRating: Math.round(entry._avg.rating * 100) / 100,
+        totalReviews: entry._count.rating
+      };
+    });
 
     // General stats
     const [totalBooks, totalUsers, totalLoans, activeLoans, overdueLoans] = await Promise.all([

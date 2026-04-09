@@ -7,6 +7,7 @@ import { tokenSign } from '../src/utils/handleJwt.js';
 let librarianToken;
 let librarianId;
 let userToken;
+let statsUserId;
 
 beforeAll(async () => {
   const hash = await encrypt('password123');
@@ -20,11 +21,12 @@ beforeAll(async () => {
   const user = await prisma.user.create({
     data: { name: 'Stats User', email: `statsuser_${Date.now()}@test.com`, password: hash, role: 'USER' }
   });
+  statsUserId = user.id;
   userToken = tokenSign(user);
 });
 
 afterAll(async () => {
-  await prisma.user.deleteMany({ where: { id: librarianId } });
+  await prisma.user.deleteMany({ where: { id: { in: [librarianId, statsUserId] } } });
   await prisma.$disconnect();
 });
 
