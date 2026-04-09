@@ -81,6 +81,54 @@ describe('POST /api/loans', () => {
       .send({ bookId: 999999 });
     expect(res.status).toBe(404);
   });
+
+  it('400 — no hay ejemplares disponibles', async () => {
+    // Set available to 0
+    await prisma.book.update({ where: { id: bookId }, data: { available: 0 } });
+    const res = await request(app)
+      .post(LOANS_BASE)
+      .set('Authorization', `Bearer ${librarianToken}`)
+      .send({ bookId });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('NO_COPIES_AVAILABLE');
+    // Restore
+    await prisma.book.update({ where: { id: bookId }, data: { available: 2 } });
+  });
+
+  it('400 — máximo 3 préstamos activos por usuario', async () => {
+    const hash = await encrypt('password123');
+    const busyUser = await prisma.user.create({
+      data: { name: 'Busy User', email: `loansbusy_${Date.now()}@test.com`, password: hash, role: 'USER' }
+    });
+    const busyToken = tokenSign(busyUser);
+
+    // Create 3 extra books and loan them
+    const extraBooks = await Promise.all([1, 2, 3].map(i =>
+      prisma.book.create({
+        data: { isbn: `BUSY-${Date.now()}-${i}`, title: `Book ${i}`, author: 'A', genre: 'G', publishedYear: 2020, copies: 1, available: 1 }
+      })
+    ));
+
+    const dueDate = new Date(); dueDate.setDate(dueDate.getDate() + 14);
+    await prisma.loan.createMany({
+      data: extraBooks.map(b => ({ userId: busyUser.id, bookId: b.id, loanDate: new Date(), dueDate, status: 'ACTIVE' }))
+    });
+    // Decrement available for each
+    await Promise.all(extraBooks.map(b => prisma.book.update({ where: { id: b.id }, data: { available: 0 } })));
+
+    // Now try to loan a 4th book
+    const res = await request(app)
+      .post(LOANS_BASE)
+      .set('Authorization', `Bearer ${busyToken}`)
+      .send({ bookId });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('MAX_ACTIVE_LOANS_REACHED');
+
+    // Cleanup
+    await prisma.loan.deleteMany({ where: { userId: busyUser.id } });
+    await prisma.book.deleteMany({ where: { id: { in: extraBooks.map(b => b.id) } } });
+    await prisma.user.delete({ where: { id: busyUser.id } });
+  });
 });
 
 describe('GET /api/loans', () => {
