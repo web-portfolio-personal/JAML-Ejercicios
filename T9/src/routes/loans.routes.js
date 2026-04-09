@@ -36,9 +36,28 @@ router.get('/', authMiddleware, getMyLoans);
  *     summary: Todos los préstamos (Librarian/Admin)
  *     security:
  *       - BearerToken: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ACTIVE, RETURNED, OVERDUE]
+ *         description: Filtrar por estado del préstamo
+ *       - in: query
+ *         name: userId
+ *         schema: { type: integer }
+ *         description: Filtrar por ID de usuario
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *         description: Resultados por página
  *     responses:
  *       200:
- *         description: Lista completa de préstamos
+ *         description: Lista completa de préstamos con paginación
  *       401:
  *         $ref: '#/components/responses/Error'
  *       403:

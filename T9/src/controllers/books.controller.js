@@ -73,7 +73,16 @@ export const updateBook = async (req, res) => {
       return handleHttpError(res, 'BOOK_NOT_FOUND', 404);
     }
 
-    const data = await prisma.book.update({ where: { id }, data: req.body });
+    const updateData = { ...req.body };
+
+    // If copies changes, adjust available proportionally to keep loaned count consistent
+    if (updateData.copies !== undefined && updateData.available === undefined) {
+      const loanedCopies = book.copies - book.available;
+      const newAvailable = Math.max(0, updateData.copies - loanedCopies);
+      updateData.available = newAvailable;
+    }
+
+    const data = await prisma.book.update({ where: { id }, data: updateData });
 
     res.json({ data });
   } catch (err) {

@@ -1,17 +1,11 @@
 import prisma from '../config/prisma.js';
 import { handleHttpError } from '../utils/handleError.js';
-
-// Mark ACTIVE loans past their dueDate as OVERDUE
-const syncOverdueLoans = async () => {
-  await prisma.loan.updateMany({
-    where: { status: 'ACTIVE', dueDate: { lt: new Date() } },
-    data: { status: 'OVERDUE' }
-  });
-};
+import { syncOverdueLoans } from '../utils/handleOverdue.js';
 
 export const getMyLoans = async (req, res) => {
   try {
-    await syncOverdueLoans();
+    // Fire-and-forget: does not block the response
+    syncOverdueLoans();
 
     const data = await prisma.loan.findMany({
       where: { userId: req.user.id },
@@ -29,7 +23,7 @@ export const getMyLoans = async (req, res) => {
 
 export const getAllLoans = async (req, res) => {
   try {
-    await syncOverdueLoans();
+    syncOverdueLoans();
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -122,7 +116,7 @@ export const returnLoan = async (req, res) => {
     const id = parseInt(req.params.id);
     const userId = req.user.id;
 
-    await syncOverdueLoans();
+    syncOverdueLoans();
 
     const loan = await prisma.loan.findUnique({
       where: { id },

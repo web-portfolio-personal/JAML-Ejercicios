@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { getStats } from '../controllers/stats.controller.js';
+import authMiddleware from '../middleware/auth.middleware.js';
+import checkRol from '../middleware/rol.middleware.js';
 
 const router = Router();
 
@@ -8,7 +10,9 @@ const router = Router();
  * /api/stats:
  *   get:
  *     tags: [Stats]
- *     summary: Estadísticas de la biblioteca
+ *     summary: Estadísticas de la biblioteca (Librarian/Admin)
+ *     security:
+ *       - BearerToken: []
  *     description: Devuelve los libros más prestados, mejor valorados y contadores generales
  *     parameters:
  *       - in: query
@@ -52,6 +56,6 @@ const router = Router();
  *                               avgRating: { type: number }
  *                               totalReviews: { type: integer }
  */
-router.get('/', getStats);
+router.get('/', authMiddleware, checkRol(['LIBRARIAN', 'ADMIN']), getStats);
 
 export default router;

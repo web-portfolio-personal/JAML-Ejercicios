@@ -10,6 +10,7 @@ const BOOKS_BASE = '/api/books';
 let userToken;
 let librarianToken;
 let userId;
+let librarianId;
 let bookId;
 let loanId;
 
@@ -24,6 +25,7 @@ beforeAll(async () => {
   });
 
   userId = user.id;
+  librarianId = librarian.id;
   userToken = tokenSign(user);
   librarianToken = tokenSign(librarian);
 
@@ -42,9 +44,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.loan.deleteMany({ where: { bookId } });
+  // Use specific IDs — no pattern matching
+  await prisma.loan.deleteMany({ where: { userId: { in: [userId, librarianId] } } });
   await prisma.book.deleteMany({ where: { id: bookId } });
-  await prisma.user.deleteMany({ where: { email: { contains: 'loans' } } });
+  await prisma.user.deleteMany({ where: { id: { in: [userId, librarianId] } } });
   await prisma.$disconnect();
 });
 
@@ -202,6 +205,31 @@ describe('OVERDUE — préstamos vencidos', () => {
     expect(found.status).toBe('OVERDUE');
 
     // Cleanup overdue loan (restore available too)
+    await prisma.loan.delete({ where: { id: overdueLoan.id } });
+  });
+
+  it('400 — préstamo OVERDUE bloquea solicitar el mismo libro de nuevo', async () => {
+    // Insert an OVERDUE loan for the user
+    const pastDue = new Date();
+    pastDue.setDate(pastDue.getDate() - 1);
+    const overdueLoan = await prisma.loan.create({
+      data: {
+        userId,
+        bookId,
+        loanDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+        dueDate: pastDue,
+        status: 'OVERDUE'
+      }
+    });
+
+    // Attempt to borrow the same book while OVERDUE loan exists
+    const res = await request(app)
+      .post(LOANS_BASE)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ bookId });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('BOOK_ALREADY_ON_LOAN');
+
     await prisma.loan.delete({ where: { id: overdueLoan.id } });
   });
 });
