@@ -4,8 +4,8 @@ import { syncOverdueLoans } from '../utils/handleOverdue.js';
 
 export const getMyLoans = async (req, res) => {
   try {
-    // Fire-and-forget: does not block the response
-    syncOverdueLoans();
+    // Await so the response always reflects up-to-date statuses
+    await syncOverdueLoans();
 
     const data = await prisma.loan.findMany({
       where: { userId: req.user.id },

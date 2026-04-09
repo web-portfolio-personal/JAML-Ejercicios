@@ -180,6 +180,8 @@ describe('GET /api/loans/all', () => {
 });
 
 describe('OVERDUE — préstamos vencidos', () => {
+  beforeEach(() => { jest.spyOn(console, 'warn').mockImplementation(() => {}); });
+  afterEach(() => { console.warn.mockRestore(); });
   it('préstamo con dueDate pasada se marca OVERDUE automáticamente', async () => {
     // Create a loan with dueDate in the past directly in DB
     const pastDue = new Date();
