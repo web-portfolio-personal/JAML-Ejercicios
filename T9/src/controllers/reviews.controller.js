@@ -4,21 +4,35 @@ import { handleHttpError } from '../utils/handleError.js';
 export const getBookReviews = async (req, res) => {
   try {
     const bookId = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     const book = await prisma.book.findUnique({ where: { id: bookId } });
     if (!book) {
       return handleHttpError(res, 'BOOK_NOT_FOUND', 404);
     }
 
-    const data = await prisma.review.findMany({
-      where: { bookId },
-      include: {
-        user: { select: { id: true, name: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const [total, data] = await Promise.all([
+      prisma.review.count({ where: { bookId } }),
+      prisma.review.findMany({
+        where: { bookId },
+        include: { user: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
 
-    res.json({ data });
+    res.json({
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     handleHttpError(res, 'ERROR_GET_REVIEWS');
   }

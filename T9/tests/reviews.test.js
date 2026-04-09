@@ -7,6 +7,7 @@ import { tokenSign } from '../src/utils/handleJwt.js';
 let userToken;
 let otherUserToken;
 let userId;
+let otherUserId;
 let bookId;
 let reviewId;
 
@@ -21,6 +22,7 @@ beforeAll(async () => {
   });
 
   userId = user.id;
+  otherUserId = other.id;
   userToken = tokenSign(user);
   otherUserToken = tokenSign(other);
 
@@ -41,33 +43,25 @@ beforeAll(async () => {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 14);
   await prisma.loan.create({
-    data: {
-      userId,
-      bookId,
-      loanDate: new Date(),
-      dueDate,
-      returnDate: new Date(),
-      status: 'RETURNED'
-    }
+    data: { userId, bookId, loanDate: new Date(), dueDate, returnDate: new Date(), status: 'RETURNED' }
   });
 });
 
 afterAll(async () => {
-  const revUsers = await prisma.user.findMany({ where: { email: { contains: 'rev' } } });
-  const revUserIds = revUsers.map(u => u.id);
-  // Delete all reviews and loans for these users (catches leftovers from prior runs)
-  await prisma.review.deleteMany({ where: { userId: { in: revUserIds } } });
-  await prisma.loan.deleteMany({ where: { userId: { in: revUserIds } } });
+  // Delete by specific IDs — no pattern matching, no FK surprises
+  await prisma.review.deleteMany({ where: { userId: { in: [userId, otherUserId] } } });
+  await prisma.loan.deleteMany({ where: { userId: { in: [userId, otherUserId] } } });
   await prisma.book.deleteMany({ where: { id: bookId } });
-  await prisma.user.deleteMany({ where: { id: { in: revUserIds } } });
+  await prisma.user.deleteMany({ where: { id: { in: [userId, otherUserId] } } });
   await prisma.$disconnect();
 });
 
 describe('GET /api/books/:id/reviews', () => {
-  it('200 — lista reseñas (público)', async () => {
+  it('200 — lista reseñas (público) con paginación', async () => {
     const res = await request(app).get(`/api/books/${bookId}/reviews`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body).toHaveProperty('pagination');
   });
 
   it('404 — libro no existe', async () => {

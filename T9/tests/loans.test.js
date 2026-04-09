@@ -54,14 +54,21 @@ describe('POST /api/loans', () => {
     expect(res.status).toBe(401);
   });
 
-  it('201 — crea préstamo correctamente', async () => {
+  it('201 — crea préstamo correctamente y dueDate es +14 días', async () => {
+    const before = new Date();
     const res = await request(app)
       .post(LOANS_BASE)
       .set('Authorization', `Bearer ${userToken}`)
       .send({ bookId });
     expect(res.status).toBe(201);
     expect(res.body.data).toMatchObject({ userId, bookId, status: 'ACTIVE' });
-    expect(res.body.data).toHaveProperty('dueDate');
+
+    // Verify dueDate is exactly loanDate + 14 days (±60 seconds tolerance)
+    const loanDate = new Date(res.body.data.loanDate);
+    const dueDate = new Date(res.body.data.dueDate);
+    const diffDays = (dueDate - loanDate) / (1000 * 60 * 60 * 24);
+    expect(diffDays).toBeCloseTo(14, 0);
+
     loanId = res.body.data.id;
   });
 
@@ -144,12 +151,21 @@ describe('GET /api/loans', () => {
 });
 
 describe('GET /api/loans/all', () => {
-  it('200 — librarian obtiene todos los préstamos', async () => {
+  it('200 — librarian obtiene todos los préstamos con paginación', async () => {
     const res = await request(app)
       .get(`${LOANS_BASE}/all`)
       .set('Authorization', `Bearer ${librarianToken}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body).toHaveProperty('pagination');
+  });
+
+  it('200 — filtra por status OVERDUE', async () => {
+    const res = await request(app)
+      .get(`${LOANS_BASE}/all?status=OVERDUE`)
+      .set('Authorization', `Bearer ${librarianToken}`);
+    expect(res.status).toBe(200);
+    res.body.data.forEach(loan => expect(loan.status).toBe('OVERDUE'));
   });
 
   it('403 — usuario normal no puede ver todos los préstamos', async () => {
@@ -157,6 +173,36 @@ describe('GET /api/loans/all', () => {
       .get(`${LOANS_BASE}/all`)
       .set('Authorization', `Bearer ${userToken}`);
     expect(res.status).toBe(403);
+  });
+});
+
+describe('OVERDUE — préstamos vencidos', () => {
+  it('préstamo con dueDate pasada se marca OVERDUE automáticamente', async () => {
+    // Create a loan with dueDate in the past directly in DB
+    const pastDue = new Date();
+    pastDue.setDate(pastDue.getDate() - 1);
+    const overdueLoan = await prisma.loan.create({
+      data: {
+        userId,
+        bookId,
+        loanDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+        dueDate: pastDue,
+        status: 'ACTIVE'
+      }
+    });
+
+    // GET /loans triggers syncOverdueLoans
+    const res = await request(app)
+      .get(LOANS_BASE)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(res.status).toBe(200);
+
+    const found = res.body.data.find(l => l.id === overdueLoan.id);
+    expect(found).toBeDefined();
+    expect(found.status).toBe('OVERDUE');
+
+    // Cleanup overdue loan (restore available too)
+    await prisma.loan.delete({ where: { id: overdueLoan.id } });
   });
 });
 

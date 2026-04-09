@@ -1,8 +1,18 @@
 import prisma from '../config/prisma.js';
 import { handleHttpError } from '../utils/handleError.js';
 
+// Mark ACTIVE loans past their dueDate as OVERDUE
+const syncOverdueLoans = async () => {
+  await prisma.loan.updateMany({
+    where: { status: 'ACTIVE', dueDate: { lt: new Date() } },
+    data: { status: 'OVERDUE' }
+  });
+};
+
 export const getMyLoans = async (req, res) => {
   try {
+    await syncOverdueLoans();
+
     const data = await prisma.loan.findMany({
       where: { userId: req.user.id },
       include: {
@@ -19,15 +29,39 @@ export const getMyLoans = async (req, res) => {
 
 export const getAllLoans = async (req, res) => {
   try {
-    const data = await prisma.loan.findMany({
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        book: { select: { id: true, title: true, author: true, isbn: true } }
-      },
-      orderBy: { loanDate: 'desc' }
-    });
+    await syncOverdueLoans();
 
-    res.json({ data });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const where = {};
+    if (req.query.status) where.status = req.query.status;
+    if (req.query.userId) where.userId = parseInt(req.query.userId);
+
+    const [total, data] = await Promise.all([
+      prisma.loan.count({ where }),
+      prisma.loan.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          book: { select: { id: true, title: true, author: true, isbn: true } }
+        },
+        orderBy: { loanDate: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    res.json({
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     handleHttpError(res, 'ERROR_GET_ALL_LOANS');
   }
@@ -38,7 +72,6 @@ export const createLoan = async (req, res) => {
     const userId = req.user.id;
     const { bookId } = req.body;
 
-    // Check book exists and has copies available
     const book = await prisma.book.findUnique({ where: { id: bookId } });
     if (!book) {
       return handleHttpError(res, 'BOOK_NOT_FOUND', 404);
@@ -47,17 +80,15 @@ export const createLoan = async (req, res) => {
       return handleHttpError(res, 'NO_COPIES_AVAILABLE', 400);
     }
 
-    // Max 3 active loans per user
     const activeLoans = await prisma.loan.count({
-      where: { userId, status: 'ACTIVE' }
+      where: { userId, status: { in: ['ACTIVE', 'OVERDUE'] } }
     });
     if (activeLoans >= 3) {
       return handleHttpError(res, 'MAX_ACTIVE_LOANS_REACHED', 400);
     }
 
-    // Cannot borrow same book twice simultaneously
     const duplicate = await prisma.loan.findFirst({
-      where: { userId, bookId, status: 'ACTIVE' }
+      where: { userId, bookId, status: { in: ['ACTIVE', 'OVERDUE'] } }
     });
     if (duplicate) {
       return handleHttpError(res, 'BOOK_ALREADY_ON_LOAN', 400);
@@ -91,6 +122,8 @@ export const returnLoan = async (req, res) => {
     const id = parseInt(req.params.id);
     const userId = req.user.id;
 
+    await syncOverdueLoans();
+
     const loan = await prisma.loan.findUnique({
       where: { id },
       include: { book: true }
@@ -100,7 +133,6 @@ export const returnLoan = async (req, res) => {
       return handleHttpError(res, 'LOAN_NOT_FOUND', 404);
     }
 
-    // Only the owner can return (or Librarian/Admin)
     const isPrivileged = ['LIBRARIAN', 'ADMIN'].includes(req.user.role);
     if (loan.userId !== userId && !isPrivileged) {
       return handleHttpError(res, 'NOT_ALLOWED', 403);
