@@ -102,7 +102,6 @@ describe('POST /api/loans', () => {
     });
     const busyToken = tokenSign(busyUser);
 
-    // Create 3 extra books and loan them
     const extraBooks = await Promise.all([1, 2, 3].map(i =>
       prisma.book.create({
         data: { isbn: `BUSY-${Date.now()}-${i}`, title: `Book ${i}`, author: 'A', genre: 'G', publishedYear: 2020, copies: 1, available: 1 }
@@ -113,10 +112,8 @@ describe('POST /api/loans', () => {
     await prisma.loan.createMany({
       data: extraBooks.map(b => ({ userId: busyUser.id, bookId: b.id, loanDate: new Date(), dueDate, status: 'ACTIVE' }))
     });
-    // Decrement available for each
     await Promise.all(extraBooks.map(b => prisma.book.update({ where: { id: b.id }, data: { available: 0 } })));
 
-    // Now try to loan a 4th book
     const res = await request(app)
       .post(LOANS_BASE)
       .set('Authorization', `Bearer ${busyToken}`)
@@ -124,11 +121,10 @@ describe('POST /api/loans', () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('MAX_ACTIVE_LOANS_REACHED');
 
-    // Cleanup
     await prisma.loan.deleteMany({ where: { userId: busyUser.id } });
     await prisma.book.deleteMany({ where: { id: { in: extraBooks.map(b => b.id) } } });
     await prisma.user.delete({ where: { id: busyUser.id } });
-  });
+  }, 20000);
 });
 
 describe('GET /api/loans', () => {

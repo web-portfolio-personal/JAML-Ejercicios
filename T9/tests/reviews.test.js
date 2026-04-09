@@ -53,10 +53,13 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.review.deleteMany({ where: { bookId } });
-  await prisma.loan.deleteMany({ where: { bookId } });
+  const revUsers = await prisma.user.findMany({ where: { email: { contains: 'rev' } } });
+  const revUserIds = revUsers.map(u => u.id);
+  // Delete all reviews and loans for these users (catches leftovers from prior runs)
+  await prisma.review.deleteMany({ where: { userId: { in: revUserIds } } });
+  await prisma.loan.deleteMany({ where: { userId: { in: revUserIds } } });
   await prisma.book.deleteMany({ where: { id: bookId } });
-  await prisma.user.deleteMany({ where: { email: { contains: 'rev' } } });
+  await prisma.user.deleteMany({ where: { id: { in: revUserIds } } });
   await prisma.$disconnect();
 });
 

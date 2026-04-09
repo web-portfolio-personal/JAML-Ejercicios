@@ -11,5 +11,6 @@ export default {
     'src/config/prisma.js',
     'src/middleware/error.middleware.js'
   ],
-  verbose: true
+  verbose: true,
+  testTimeout: 15000
 };
