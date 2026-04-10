@@ -1,0 +1,140 @@
+### T10 — Chat en Tiempo Real API
+### Usar con la extensión REST Client de VS Code
+
+@base = http://localhost:3000
+@token = PEGA_AQUI_EL_TOKEN_DEL_LOGIN
+@roomId = PEGA_AQUI_EL_ID_DE_SALA
+@msgId  = PEGA_AQUI_EL_ID_DE_MENSAJE
+
+# =============================================
+# AUTH
+# =============================================
+
+### Registrar usuario
+POST {{base}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Alice",
+  "email": "alice@test.com",
+  "password": "password123"
+}
+
+###
+
+### Login (copia el token de la respuesta en @token arriba)
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@test.com",
+  "password": "password123"
+}
+
+###
+
+### Perfil propio
+GET {{base}}/api/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+# =============================================
+# ROOMS
+# =============================================
+
+### Listar salas (público)
+GET {{base}}/api/rooms
+
+###
+
+### Crear sala
+POST {{base}}/api/rooms
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "general",
+  "description": "Canal general"
+}
+
+###
+
+### Historial de mensajes
+GET {{base}}/api/rooms/{{roomId}}/messages
+Authorization: Bearer {{token}}
+
+###
+
+### Historial con paginación
+GET {{base}}/api/rooms/{{roomId}}/messages?page=1&limit=20
+Authorization: Bearer {{token}}
+
+###
+
+### Búsqueda de mensajes (bonus)
+GET {{base}}/api/rooms/{{roomId}}/messages?search=hola
+Authorization: Bearer {{token}}
+
+###
+
+# =============================================
+# MENSAJES (bonus REST)
+# =============================================
+
+### Editar mensaje propio
+PATCH {{base}}/api/rooms/{{roomId}}/messages/{{msgId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Mensaje editado"
+}
+
+###
+
+### Eliminar mensaje propio
+DELETE {{base}}/api/rooms/{{roomId}}/messages/{{msgId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Añadir/quitar reacción emoji (bonus)
+POST {{base}}/api/rooms/{{roomId}}/messages/{{msgId}}/reactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "emoji": "👍"
+}
+
+###
+
+# =============================================
+# ERRORES — verificar manejo correcto
+# =============================================
+
+### 401 — sin token
+GET {{base}}/api/auth/me
+
+###
+
+### 404 — sala inexistente
+GET {{base}}/api/rooms/000000000000000000000000/messages
+Authorization: Bearer {{token}}
+
+###
+
+### 409 — sala duplicada
+POST {{base}}/api/rooms
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "general"
+}
+
+###
+
+### 404 — ruta inexistente
+GET {{base}}/api/noexiste

@@ -24,6 +24,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(join(__dirname, '../public')));
 
+// Servir socket.io client desde node_modules (sin dependencia de CDN externo)
+app.use('/socket.io-client', express.static(
+  join(__dirname, '../node_modules/socket.io/client-dist')
+));
+
 // REST routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomsRoutes);

@@ -10,8 +10,7 @@ const messageSchema = new mongoose.Schema(
     room: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true, trim: true },
-    reactions: { type: [reactionSchema], default: [] },
-    imageUrl: { type: String, default: null }
+    reactions: { type: [reactionSchema], default: [] }
   },
   { timestamps: true }
 );

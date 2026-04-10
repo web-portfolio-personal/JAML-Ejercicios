@@ -34,7 +34,10 @@ export const registerRoomHandlers = (io, socket, onlineUsers) => {
 
       const users = [...roomUsers.get(roomId).values()];
 
-      // Confirmación al que se une
+      // Evento explícito room:joined al cliente que se une (contrato del enunciado)
+      socket.emit('room:joined', { room, users });
+
+      // Confirmación también por acknowledgement para compatibilidad con el frontend
       callback?.({ error: false, room, users, history });
 
       // Notificar al resto de la sala
