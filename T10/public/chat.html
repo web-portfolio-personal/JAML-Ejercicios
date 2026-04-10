@@ -303,7 +303,14 @@
     logout();
   });
 
-  // Presencia
+  // Presencia — lista inicial de usuarios ya conectados al entrar
+  socket.on('users:online-list', (users) => {
+    users.forEach(({ userId, name }) => {
+      onlineUsers[userId] = { name };
+    });
+    renderOnlineUsers();
+  });
+
   socket.on('user:online', ({ userId, name }) => {
     if (userId === me.id) return;
     onlineUsers[userId] = { name };
@@ -471,7 +478,7 @@
       <div class="msg-bubble">${escapeHtml(msg.content)}</div>
       <div class="reactions-bar" id="reactions-${msg.id || msg._id}">${reactions}</div>
       <div class="msg-actions">
-        <button onclick="openReactionPicker('${msg.id || msg._id}')">😊</button>
+        <button onclick="openReactionPicker('${msg.id || msg._id}', event)">😊</button>
         ${isOwn ? `<button onclick="deleteMessage('${msg.id || msg._id}')">🗑</button>` : ''}
         <button onclick="openPmModal('${msg.user.id}', '${escapeHtml(msg.user.name)}')">✉️</button>
       </div>
@@ -512,7 +519,8 @@
     if (el) el.innerHTML = renderReactionBadges(reactions, messageId);
   }
 
-  function openReactionPicker(msgId) {
+  function openReactionPicker(msgId, event) {
+    event.stopPropagation(); // evita que el listener global lo cierre inmediatamente
     const picker = document.getElementById('emojiPicker');
     picker.classList.toggle('open');
     picker.dataset.targetMsg = msgId;

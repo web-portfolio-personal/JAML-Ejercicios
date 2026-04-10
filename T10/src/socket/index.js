@@ -31,7 +31,19 @@ export const registerSocketHandlers = (io) => {
     if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
     onlineUsers.get(userId).add(socket.id);
 
-    // Notificar a todos que este usuario está online
+    // Enviar al nuevo socket la lista de usuarios ya conectados
+    const alreadyOnline = [];
+    io.sockets.sockets.forEach((s) => {
+      if (s.user && s.user._id.toString() !== userId) {
+        const uid = s.user._id.toString();
+        if (!alreadyOnline.find(u => u.userId === uid)) {
+          alreadyOnline.push({ userId: uid, name: s.user.name });
+        }
+      }
+    });
+    socket.emit('users:online-list', alreadyOnline);
+
+    // Notificar al resto que este usuario está online
     socket.broadcast.emit('user:online', {
       userId,
       name: userName
