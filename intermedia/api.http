@@ -1,0 +1,156 @@
+### BildyApp API — REST Client (VS Code)
+### Variables: actualiza @token y @refreshToken después de register/login
+
+@base = http://localhost:3000/api/user
+@token = PASTE_ACCESS_TOKEN_HERE
+@refreshToken = PASTE_REFRESH_TOKEN_HERE
+
+### ──────────────────────────────────────────────────────────────
+### 1. Registro de usuario
+### ──────────────────────────────────────────────────────────────
+POST {{base}}/register
+Content-Type: application/json
+
+{
+  "email": "alice@bildyapp.com",
+  "password": "Secret123"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 2. Validación del email (código obtenido de MongoDB o logs)
+### ──────────────────────────────────────────────────────────────
+PUT {{base}}/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "code": "123456"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 3. Login
+### ──────────────────────────────────────────────────────────────
+POST {{base}}/login
+Content-Type: application/json
+
+{
+  "email": "alice@bildyapp.com",
+  "password": "Secret123"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 4. Onboarding — datos personales
+### ──────────────────────────────────────────────────────────────
+PUT {{base}}/register
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Alice",
+  "lastName": "García",
+  "nif": "12345678A"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 5a. Onboarding — crear empresa (no autónomo)
+### ──────────────────────────────────────────────────────────────
+PATCH {{base}}/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isFreelance": false,
+  "name": "Bildy S.L.",
+  "cif": "B12345678",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "10",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+### ──────────────────────────────────────────────────────────────
+### 5b. Onboarding — autónomo (usa datos personales del usuario)
+### ──────────────────────────────────────────────────────────────
+PATCH {{base}}/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isFreelance": true
+}
+
+### ──────────────────────────────────────────────────────────────
+### 6. Subir logo (multipart/form-data — usar cliente REST)
+###    En Postman / Thunder Client: POST con form-data, campo "logo"
+### ──────────────────────────────────────────────────────────────
+# PATCH {{base}}/logo
+# Content-Type: multipart/form-data (gestionado por el cliente)
+# Authorization: Bearer {{token}}
+# Body: form-data → logo: [archivo imagen]
+
+### ──────────────────────────────────────────────────────────────
+### 7. Obtener usuario (con populate de Company)
+### ──────────────────────────────────────────────────────────────
+GET {{base}}
+Authorization: Bearer {{token}}
+
+### ──────────────────────────────────────────────────────────────
+### 8. Refresh token
+### ──────────────────────────────────────────────────────────────
+POST {{base}}/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 9. Logout
+### ──────────────────────────────────────────────────────────────
+POST {{base}}/logout
+Authorization: Bearer {{token}}
+
+### ──────────────────────────────────────────────────────────────
+### 10. Eliminar usuario — soft delete
+### ──────────────────────────────────────────────────────────────
+DELETE {{base}}?soft=true
+Authorization: Bearer {{token}}
+
+### ──────────────────────────────────────────────────────────────
+### 10b. Eliminar usuario — hard delete
+### ──────────────────────────────────────────────────────────────
+DELETE {{base}}
+Authorization: Bearer {{token}}
+
+### ──────────────────────────────────────────────────────────────
+### BONUS: Cambiar contraseña
+### ──────────────────────────────────────────────────────────────
+PUT {{base}}/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "oldPassword": "Secret123",
+  "newPassword": "NewSecret456"
+}
+
+### ──────────────────────────────────────────────────────────────
+### 10. Invitar compañero (solo admins)
+### ──────────────────────────────────────────────────────────────
+POST {{base}}/invite
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "bob@bildyapp.com",
+  "name": "Bob",
+  "lastName": "Martínez"
+}
+
+### ──────────────────────────────────────────────────────────────
+### Health check
+### ──────────────────────────────────────────────────────────────
+GET http://localhost:3000/health
