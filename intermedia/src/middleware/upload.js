@@ -1,6 +1,5 @@
 import multer from 'multer';
 import { extname, join } from 'node:path';
-import AppError from '../utils/AppError.js';
 
 const __dirname = import.meta.dirname;
 
@@ -20,7 +19,10 @@ const fileFilter = (_req, file, cb) => {
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(AppError.badRequest('Solo se permiten imágenes (jpeg, png, gif, webp)'));
+    // Multer requiere un Error estándar en el callback (no AppError)
+    const err = new Error('Solo se permiten imágenes (jpeg, png, gif, webp)');
+    err.code = 'LIMIT_FILE_TYPE';
+    cb(err);
   }
 };
 

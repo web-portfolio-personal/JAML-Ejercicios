@@ -128,8 +128,8 @@ export const login = async (req, res, next) => {
 export const updatePersonal = async (req, res) => {
   const { name, lastName, nif } = req.body;
 
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user._id, deleted: false },
     { name, lastName, nif },
     { new: true, runValidators: true }
   ).populate('company');
@@ -139,7 +139,7 @@ export const updatePersonal = async (req, res) => {
 
 // ── 5. Onboarding — compañía — PATCH /api/user/company ───────────────────────
 
-export const updateCompany = async (req, res) => {
+export const updateCompany = async (req, res, next) => {
   const currentUser = await User.findById(req.user._id);
 
   let companyData;
@@ -162,7 +162,7 @@ export const updateCompany = async (req, res) => {
   }
 
   if (!companyData.cif) {
-    throw AppError.badRequest('CIF no disponible. Completa primero los datos personales');
+    return next(AppError.badRequest('CIF no disponible. Completa primero los datos personales'));
   }
 
   // Buscar si ya existe una empresa con ese CIF
@@ -220,7 +220,7 @@ export const uploadLogo = async (req, res, next) => {
 // ── 7. Obtener usuario — GET /api/user ───────────────────────────────────────
 
 export const getUser = async (req, res) => {
-  const user = await User.findById(req.user._id).populate('company');
+  const user = await User.findOne({ _id: req.user._id, deleted: false }).populate('company');
   res.json({ user });
 };
 

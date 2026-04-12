@@ -3,7 +3,11 @@ import { EventEmitter } from 'node:events';
 const userEvents = new EventEmitter();
 
 userEvents.on('user:registered', (user) => {
-  console.log(`[EVENT] user:registered → ${user.email} | código: ${user.verificationCode}`);
+  // El código se enviaría por email en producción; en desarrollo se muestra en consola
+  const hint = process.env.NODE_ENV !== 'production'
+    ? ` | código (dev): ${user.verificationCode}`
+    : '';
+  console.log(`[EVENT] user:registered → ${user.email}${hint}`);
 });
 
 userEvents.on('user:verified', (user) => {

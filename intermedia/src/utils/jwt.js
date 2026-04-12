@@ -1,11 +1,13 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 import { env } from '../config/index.js';
 
 export const signAccessToken = (userId) =>
   jwt.sign({ _id: userId }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
 
+// jti (JWT ID) único garantiza que tokens firmados en el mismo segundo sean distintos
 export const signRefreshToken = (userId) =>
-  jwt.sign({ _id: userId }, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
+  jwt.sign({ _id: userId, jti: randomUUID() }, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
 
 export const verifyToken = (token, secret) => {
   try {

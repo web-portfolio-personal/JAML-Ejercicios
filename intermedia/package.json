@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file=.env src/index.js",
-    "start": "node --env-file=.env src/index.js"
+    "start": "node --env-file=.env src/index.js",
+    "test:server": "node --env-file=.env --env-file=.env.test src/index.js",
+    "test": "node --env-file=.env --env-file=.env.test --test tests/api.test.js"
   },
   "engines": {
     "node": ">=22.0.0"

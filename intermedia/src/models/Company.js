@@ -32,7 +32,7 @@ const companySchema = new mongoose.Schema(
   }
 );
 
-companySchema.index({ cif: 1 });
+companySchema.index({ cif: 1 }, { unique: true });
 
 const Company = mongoose.model('Company', companySchema);
 export default Company;

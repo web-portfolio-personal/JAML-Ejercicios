@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import * as ctrl from '../controllers/user.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 import checkRole from '../middleware/role.middleware.js';
@@ -17,9 +18,18 @@ import {
 
 const router = Router();
 
+// Rate limiting estricto para endpoints de autenticación (10 req / 15 min; sin límite en test)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 10_000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: true, message: 'Demasiados intentos de autenticación, inténtalo más tarde' },
+});
+
 // ── Auth pública ─────────────────────────────────────────────────────────────
-router.post('/register', validate(registerSchema), ctrl.register);
-router.post('/login', validate(loginSchema), ctrl.login);
+router.post('/register', authLimiter, validate(registerSchema), ctrl.register);
+router.post('/login', authLimiter, validate(loginSchema), ctrl.login);
 router.post('/refresh', validate(refreshSchema), ctrl.refresh);
 
 // ── Verificación de email ────────────────────────────────────────────────────

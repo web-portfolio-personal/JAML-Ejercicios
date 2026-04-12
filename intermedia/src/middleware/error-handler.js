@@ -33,6 +33,11 @@ export const errorHandler = (err, _req, res, _next) => {
     err = AppError.badRequest('El archivo excede el tamaño máximo (5 MB)');
   }
 
+  // Multer: tipo de archivo no permitido
+  if (err.code === 'LIMIT_FILE_TYPE') {
+    err = AppError.badRequest(err.message);
+  }
+
   const statusCode = err.statusCode || 500;
   const isDev = process.env.NODE_ENV === 'development';
 

@@ -4,6 +4,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { join } from 'node:path';
 
+// Rate limiting global — aplicado aquí; el específico de auth vive en user.routes.js
+
 import userRoutes from './routes/user.routes.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
 
@@ -32,23 +34,16 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Rate limiting global: 100 req / 15 min
+// Rate limiting global: 100 req / 15 min (sin límite en test)
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: process.env.NODE_ENV === 'test' ? 10_000 : 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: true, message: 'Demasiadas solicitudes, inténtalo más tarde' },
   })
 );
-
-// Rate limiting estricto para auth: 10 req / 15 min
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { error: true, message: 'Demasiados intentos de autenticación' },
-});
 
 // ── Parseo de body ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
@@ -63,8 +58,6 @@ app.get('/health', (_req, res) => {
 });
 
 // ── Rutas de la API ──────────────────────────────────────────────────────────
-app.use('/api/user/register', authLimiter);
-app.use('/api/user/login', authLimiter);
 app.use('/api/user', userRoutes);
 
 // ── Manejo de errores ────────────────────────────────────────────────────────
