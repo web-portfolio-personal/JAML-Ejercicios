@@ -7,10 +7,12 @@ on:
       - 'T11/**'
       - '.github/workflows/t11-deploy.yml'
 
+# Railway (con "Wait for CI" activado) despliega automáticamente
+# cuando este workflow termina en verde. No se necesita action adicional.
+
 jobs:
-  # ── 1. Tests (CI gate) ──────────────────────────────────────────────────────
   test:
-    name: Run tests
+    name: Run tests (CI gate para Railway)
     runs-on: ubuntu-latest
 
     env:
@@ -59,19 +61,3 @@ jobs:
 
       - name: Tests
         run: npm run test:ci
-
-  # ── 2. Deploy a Railway ─────────────────────────────────────────────────────
-  deploy:
-    name: Deploy to Railway
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        with:
-          service: t11-library-api

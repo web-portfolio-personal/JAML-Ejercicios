@@ -54,17 +54,5 @@ jobs:
       - name: Tests
         run: npm run test:ci
 
-  deploy:
-    name: Deploy to Railway
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        with:
-          service: t11-library-api
+  # Railway (con "Wait for CI" activado) despliega automáticamente
+  # cuando el job "test" termina en verde. No se necesita job adicional.
