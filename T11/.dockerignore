@@ -1,0 +1,30 @@
+node_modules
+npm-debug.log*
+
+# Variables de entorno (nunca en la imagen)
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Docker mismo
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests y coverage
+tests/
+coverage/
+.nyc_output/
+
+# Docs opcionales
+*.md
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,44 @@
+{
+  "name": "t9-library-api",
+  "version": "1.0.0",
+  "description": "Library API — Supabase + Prisma, JWT, Roles, Swagger",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node --env-file=.env src/index.js",
+    "start:prod": "node src/index.js",
+    "build": "prisma generate",
+    "postinstall": "prisma generate",
+    "db:studio": "npx prisma studio",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push": "npx prisma db push",
+    "db:seed": "node --env-file=.env prisma/seed.js",
+    "test": "node --env-file=.env --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand",
+    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "prisma": "^6.0.0",
+    "supertest": "^6.3.3"
+  },
+  "prisma": {
+    "seed": "node --env-file=.env prisma/seed.js"
+  }
+}

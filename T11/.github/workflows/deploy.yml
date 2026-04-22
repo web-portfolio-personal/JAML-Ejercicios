@@ -1,0 +1,74 @@
+# NOTA: Este archivo es referencia. El workflow activo está en la raíz
+# del repo (.github/workflows/t11-deploy.yml).
+# GitHub Actions solo lee .github/workflows/ desde la raíz del repositorio.
+
+name: Deploy → Railway
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: library_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Generar Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
+
+      - name: Aplicar esquema
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
+
+      - name: Tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
+          JWT_SECRET: test-secret-32-characters-long-ok
+          JWT_EXPIRES_IN: 2h
+
+  deploy:
+    name: Deploy to Railway
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: t11-library-api

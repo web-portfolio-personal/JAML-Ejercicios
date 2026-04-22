@@ -1,0 +1,137 @@
+### Variables
+@base = http://localhost:3000/api
+@token = {{login.response.body.token}}
+
+### ─── HEALTH ────────────────────────────────────────────────────────────────
+
+GET http://localhost:3000/health
+
+### ─── AUTH ──────────────────────────────────────────────────────────────────
+
+### Register USER
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "user@test.com",
+  "password": "password123"
+}
+
+### Register LIBRARIAN
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test Librarian",
+  "email": "librarian@test.com",
+  "password": "password123",
+  "role": "LIBRARIAN"
+}
+
+### Register ADMIN
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test Admin",
+  "email": "admin@test.com",
+  "password": "password123",
+  "role": "ADMIN"
+}
+
+### Login
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "password123"
+}
+
+### Get my profile
+GET {{base}}/auth/me
+Authorization: Bearer {{token}}
+
+### ─── BOOKS ──────────────────────────────────────────────────────────────────
+
+### List all books
+GET {{base}}/books
+
+### List books with filters
+GET {{base}}/books?genre=Fiction&available=true&page=1&limit=5
+
+### Get book by ID
+GET {{base}}/books/1
+
+### Create book (Librarian/Admin token required)
+POST {{base}}/books
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isbn": "978-3-16-148410-0",
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes",
+  "genre": "Classic",
+  "description": "Una obra maestra de la literatura española.",
+  "publishedYear": 1605,
+  "copies": 3
+}
+
+### Update book (Librarian/Admin token required)
+PUT {{base}}/books/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "copies": 10,
+  "available": 10
+}
+
+### Delete book (Admin token required)
+DELETE {{base}}/books/1
+Authorization: Bearer {{token}}
+
+### ─── LOANS ──────────────────────────────────────────────────────────────────
+
+### My loans
+GET {{base}}/loans
+Authorization: Bearer {{token}}
+
+### All loans (Librarian/Admin)
+GET {{base}}/loans/all
+Authorization: Bearer {{token}}
+
+### Request loan
+POST {{base}}/loans
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "bookId": 1
+}
+
+### Return book
+PUT {{base}}/loans/1/return
+Authorization: Bearer {{token}}
+
+### ─── REVIEWS ─────────────────────────────────────────────────────────────────
+
+### Get reviews for book
+GET {{base}}/books/1/reviews
+
+### Create review (must have returned loan)
+POST {{base}}/books/1/reviews
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "rating": 5,
+  "comment": "Excelente libro, muy recomendado."
+}
+
+### Delete my review
+DELETE {{base}}/reviews/1
+Authorization: Bearer {{token}}
