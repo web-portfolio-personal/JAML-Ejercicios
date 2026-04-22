@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/config/prisma.js';
