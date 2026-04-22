@@ -13,6 +13,13 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
+      JWT_SECRET: test-secret-32-characters-long-ok
+      JWT_EXPIRES_IN: 2h
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -41,28 +48,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: T11/package-lock.json
 
-      - run: npm ci
+      - name: Instalar dependencias
+        run: npm ci
 
       - name: Generar Prisma Client
         run: npx prisma generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
-          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
 
       - name: Aplicar esquema
-        run: npx prisma db push --skip-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
-          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
+        run: npx prisma db push --skip-generate --accept-data-loss
 
       - name: Tests
         run: npm run test:ci
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/library_test
-          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/library_test
-          JWT_SECRET: test-secret-32-characters-long-ok
-          JWT_EXPIRES_IN: 2h
 
   # ── 2. Deploy a Railway ─────────────────────────────────────────────────────
   deploy:
