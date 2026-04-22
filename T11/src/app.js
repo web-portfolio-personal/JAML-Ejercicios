@@ -20,22 +20,21 @@ if (process.env.NODE_ENV !== 'test') {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 app.use('/api', routes);
 
-// Health check con verificación real de BD
+// Health check — siempre 200 (app viva), estado de BD como información
 app.get('/health', async (req, res) => {
   const health = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
+    database: 'unknown',
   };
 
   try {
     await prisma.$queryRaw`SELECT 1`;
     health.database = 'connected';
   } catch {
-    health.status = 'error';
     health.database = 'disconnected';
-    return res.status(503).json(health);
   }
 
   res.json(health);
