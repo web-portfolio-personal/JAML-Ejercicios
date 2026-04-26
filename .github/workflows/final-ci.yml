@@ -1,0 +1,46 @@
+name: Final — CI Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'final/**'
+      - '.github/workflows/final-ci.yml'
+  pull_request:
+    paths:
+      - 'final/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      MONGODB_URI: mongodb://localhost:27017/bildyapp_test
+      JWT_SECRET: test-secret-32-characters-long-ok!
+      JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long!!
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PUBLIC_URL: http://localhost:3000
+
+    defaults:
+      run:
+        working-directory: final
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: final/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar tests
+        run: npm test
