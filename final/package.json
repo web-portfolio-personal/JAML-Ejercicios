@@ -45,9 +45,7 @@
     "testMatch": [
       "**/tests/**/*.test.js"
     ],
-    "globalSetup": "./tests/setup.global.js",
-    "globalTeardown": "./tests/teardown.global.js",
-    "setupFilesAfterFramework": [],
-    "testTimeout": 30000
+    "testTimeout": 30000,
+    "runInBand": true
   }
 }
