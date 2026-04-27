@@ -26,13 +26,11 @@ const deliveryNoteSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Project',
       required: true,
-      index: true,
     },
     format: {
       type: String,

@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { Server as SocketIO } from 'socket.io';
 import helmet from 'helmet';
@@ -14,7 +15,8 @@ import { verifyToken } from './utils/jwt.js';
 import { env } from './config/index.js';
 import mongoose from 'mongoose';
 
-const __dirname = import.meta.dirname;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
