@@ -1,0 +1,359 @@
+### BildyApp API — REST Client (VS Code REST Client extension)
+### Actualiza @token después de login
+
+@host     = http://localhost:3000
+@base     = {{host}}/api
+@token    = PASTE_ACCESS_TOKEN_HERE
+@refresh  = PASTE_REFRESH_TOKEN_HERE
+@clientId = PASTE_CLIENT_ID_HERE
+@projectId= PASTE_PROJECT_ID_HERE
+@noteId   = PASTE_NOTE_ID_HERE
+
+# ════════════════════════════════════════════════════════════
+# USUARIOS
+# ════════════════════════════════════════════════════════════
+
+### 1. Registro
+POST {{base}}/user/register
+Content-Type: application/json
+
+{
+  "email": "alice@bildyapp.com",
+  "password": "Secret123!"
+}
+
+###
+
+### 2. Verificar email (código de 6 dígitos desde logs/DB)
+PUT {{base}}/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "code": "123456"
+}
+
+###
+
+### 3. Login
+POST {{base}}/user/login
+Content-Type: application/json
+
+{
+  "email": "alice@bildyapp.com",
+  "password": "Secret123!"
+}
+
+###
+
+### 4. Onboarding — datos personales
+PUT {{base}}/user/register
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Alice",
+  "lastName": "García",
+  "nif": "12345678A"
+}
+
+###
+
+### 5. Onboarding — empresa
+PATCH {{base}}/user/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isFreelance": false,
+  "name": "Bildy S.L.",
+  "cif": "B12345678",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "10",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 5b. Onboarding — autónomo
+PATCH {{base}}/user/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isFreelance": true
+}
+
+###
+
+### 6. Obtener usuario
+GET {{base}}/user
+Authorization: Bearer {{token}}
+
+###
+
+### 7. Refresh token
+POST {{base}}/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh}}"
+}
+
+###
+
+### 8. Logout
+POST {{base}}/user/logout
+Authorization: Bearer {{token}}
+
+###
+
+### 9. Cambiar contraseña
+PUT {{base}}/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "oldPassword": "Secret123!",
+  "newPassword": "NewSecret456@"
+}
+
+###
+
+### 10. Invitar compañero (requiere rol admin)
+POST {{base}}/user/invite
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "bob@bildyapp.com",
+  "name": "Bob",
+  "lastName": "Martínez"
+}
+
+###
+
+### 11. Eliminar usuario (soft delete)
+DELETE {{base}}/user?soft=true
+Authorization: Bearer {{token}}
+
+###
+
+# ════════════════════════════════════════════════════════════
+# CLIENTES
+# ════════════════════════════════════════════════════════════
+
+### 12. Crear cliente
+POST {{base}}/client
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Constructora Pérez S.A.",
+  "cif": "A12345678",
+  "email": "contacto@perez.com",
+  "phone": "910000001",
+  "address": {
+    "street": "Avenida de la Industria",
+    "number": "42",
+    "postal": "28100",
+    "city": "Alcobendas",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 13. Listar clientes (con paginación y filtros)
+GET {{base}}/client?page=1&limit=10&search=Pérez
+Authorization: Bearer {{token}}
+
+###
+
+### 14. Obtener cliente por ID
+GET {{base}}/client/{{clientId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 15. Actualizar cliente
+PUT {{base}}/client/{{clientId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Constructora Pérez Renovada S.A.",
+  "email": "nuevo@perez.com"
+}
+
+###
+
+### 16. Archivar cliente (soft delete)
+DELETE {{base}}/client/{{clientId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 17. Restaurar cliente archivado
+PATCH {{base}}/client/{{clientId}}/restore
+Authorization: Bearer {{token}}
+
+###
+
+# ════════════════════════════════════════════════════════════
+# PROYECTOS
+# ════════════════════════════════════════════════════════════
+
+### 18. Crear proyecto
+POST {{base}}/project
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "client": "{{clientId}}",
+  "name": "Reforma Oficina Central",
+  "projectCode": "PRJ-2026-001",
+  "address": {
+    "street": "Calle Gran Vía",
+    "number": "28",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  },
+  "notes": "Incluye derribo de tabiques y pintura"
+}
+
+###
+
+### 19. Listar proyectos
+GET {{base}}/project?page=1&limit=10&search=Oficina
+Authorization: Bearer {{token}}
+
+###
+
+### 20. Obtener proyecto por ID
+GET {{base}}/project/{{projectId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 21. Actualizar proyecto
+PUT {{base}}/project/{{projectId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Reforma Oficina Central — Fase 2",
+  "notes": "Segunda fase: instalaciones eléctricas"
+}
+
+###
+
+### 22. Archivar proyecto (soft delete)
+DELETE {{base}}/project/{{projectId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 23. Restaurar proyecto archivado
+PATCH {{base}}/project/{{projectId}}/restore
+Authorization: Bearer {{token}}
+
+###
+
+# ════════════════════════════════════════════════════════════
+# ALBARANES
+# ════════════════════════════════════════════════════════════
+
+### 24. Crear albarán (horas)
+POST {{base}}/deliverynote
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "hours",
+  "description": "Jornada de instalación eléctrica",
+  "workDate": "2026-04-28",
+  "hours": 8,
+  "workers": [
+    { "name": "Carlos López", "hours": 4 },
+    { "name": "María Gómez", "hours": 4 }
+  ]
+}
+
+###
+
+### 25. Crear albarán (material)
+POST {{base}}/deliverynote
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "material",
+  "description": "Suministro de cable eléctrico",
+  "workDate": "2026-04-29",
+  "material": "Cable eléctrico 2.5mm",
+  "quantity": 150,
+  "unit": "metros"
+}
+
+###
+
+### 26. Listar albaranes (con filtros)
+GET {{base}}/deliverynote?page=1&limit=10&format=hours
+Authorization: Bearer {{token}}
+
+###
+
+### 27. Obtener albarán por ID (con datos populados)
+GET {{base}}/deliverynote/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 28. Descargar PDF del albarán
+GET {{base}}/deliverynote/{{noteId}}/pdf
+Authorization: Bearer {{token}}
+
+###
+
+### 29. Firmar albarán (multipart — campo "signature")
+# PATCH {{base}}/deliverynote/{{noteId}}/sign
+# Content-Type: multipart/form-data
+# Authorization: Bearer {{token}}
+# Body: form-data → signature: [imagen PNG/JPG]
+
+###
+
+### 30. Eliminar albarán (solo no firmados)
+DELETE {{base}}/deliverynote/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+# ════════════════════════════════════════════════════════════
+# DASHBOARD
+# ════════════════════════════════════════════════════════════
+
+### 31. Dashboard — estadísticas globales de la compañía
+GET {{base}}/dashboard
+Authorization: Bearer {{token}}
+
+###
+
+# ════════════════════════════════════════════════════════════
+# HEALTH CHECK
+# ════════════════════════════════════════════════════════════
+
+### 32. Health check
+GET {{host}}/health
+
+###
