@@ -29,6 +29,10 @@ export const dbConnect = async () => {
   console.log('✅ Conectado a MongoDB');
 };
 
-mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️  Desconectado de MongoDB');
-});
+// Solo registrar el listener de desconexión fuera del entorno de tests
+// para evitar ruido en la salida de Jest
+if (env.NODE_ENV !== 'test') {
+  mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️  Desconectado de MongoDB');
+  });
+}
