@@ -1,0 +1,159 @@
+// Prisma Schema — BildyApp API (TypeScript Bonus T9 + T12)
+//
+// Provider: sqlite (dev/test — sin dependencias externas)
+//
+// Para producción con PostgreSQL:
+//   1. Cambiar provider a "postgresql"
+//   2. Cambiar campos String (role, status, format, address, workers)
+//      a sus tipos nativos: enum Role/Status/NoteFormat y Json
+//   3. Ejecutar: prisma migrate dev --name init
+//
+// La API de Prisma (@prisma/client) es idéntica en ambos providers.
+// SQLite no soporta enum ni Json nativos — se almacenan como String.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Empresa ───────────────────────────────────────────────────────────────────
+// En PostgreSQL: address sería Json?
+model Company {
+  id          String    @id @default(cuid())
+  name        String
+  cif         String    @unique
+  isFreelance Boolean   @default(false)
+  logoUrl     String?
+  address     String?   // JSON serializado (en PostgreSQL: Json?)
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users         User[]
+  clients       Client[]
+  projects      Project[]
+  deliveryNotes DeliveryNote[]
+}
+
+// ── Usuario ───────────────────────────────────────────────────────────────────
+// En PostgreSQL: role sería enum Role, status sería enum Status
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String
+  name             String?
+  lastName         String?
+  nif              String?
+  role             String    @default("user")    // "user" | "admin"
+  status           String    @default("pending") // "pending" | "verified"
+  verificationCode String?
+  companyId        String?
+  logoUrl          String?
+  deleted          Boolean   @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  company       Company?       @relation(fields: [companyId], references: [id])
+  refreshTokens RefreshToken[]
+  clients       Client[]
+  projects      Project[]
+  deliveryNotes DeliveryNote[]
+}
+
+// ── Refresh Tokens ────────────────────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(cuid())
+  jti       String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Cliente ───────────────────────────────────────────────────────────────────
+// En PostgreSQL: address sería Json?
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  cif       String
+  email     String?
+  phone     String?
+  address   String?   // JSON serializado (en PostgreSQL: Json?)
+  companyId String
+  userId    String
+  deleted   Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  projects      Project[]
+  deliveryNotes DeliveryNote[]
+
+  @@unique([companyId, cif])
+}
+
+// ── Proyecto ──────────────────────────────────────────────────────────────────
+// En PostgreSQL: address sería Json?
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  projectCode String
+  address     String?   // JSON serializado (en PostgreSQL: Json?)
+  email       String?
+  notes       String?
+  active      Boolean   @default(true)
+  companyId   String
+  userId      String
+  clientId    String
+  deleted     Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  client        Client         @relation(fields: [clientId], references: [id])
+  deliveryNotes DeliveryNote[]
+
+  @@unique([companyId, projectCode])
+}
+
+// ── Albarán ───────────────────────────────────────────────────────────────────
+// En PostgreSQL: format sería enum NoteFormat, workers sería Json?
+model DeliveryNote {
+  id           String    @id @default(cuid())
+  format       String    // "hours" | "material" (en PostgreSQL: enum NoteFormat)
+  description  String?
+  workDate     DateTime
+  material     String?
+  quantity     Float?
+  unit         String?
+  hours        Float?
+  workers      String?   // JSON serializado (en PostgreSQL: Json?)
+  signed       Boolean   @default(false)
+  signedAt     DateTime?
+  signatureUrl String?
+  pdfUrl       String?
+  companyId    String
+  userId       String
+  clientId     String
+  projectId    String
+  deleted      Boolean   @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  client   Client   @relation(fields: [clientId], references: [id])
+  project  Project  @relation(fields: [projectId], references: [id])
+}
