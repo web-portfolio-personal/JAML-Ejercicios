@@ -1,7 +1,9 @@
 import multer from 'multer';
-import { extname, join } from 'node:path';
+import { extname, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = import.meta.dirname;
+// Compatible con Jest VM (import.meta.dirname no disponible en contexto VM)
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ── Almacenamiento en disco (logos de compañía) ───────────────────────────────
 

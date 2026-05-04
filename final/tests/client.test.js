@@ -248,3 +248,71 @@ describe('GET /api/client/archived + PATCH /api/client/:id/restore', () => {
     expect(archRes2.body.clients).toHaveLength(0);
   });
 });
+
+// ── Guardia sin empresa ────────────────────────────────────────────────────────
+// Cubre las ramas `if (!req.user.company)` en client.controller.js
+
+describe('Guardia sin empresa — usuario sin company', () => {
+  // Helper: usuario verificado pero SIN empresa
+  const setupVerifiedNoCompany = async () => {
+    const { body: reg } = await request(app)
+      .post(`${API_USER}/register`)
+      .send({ email: 'nocompany@bildytest.com', password: 'SecurePass123!' });
+
+    const mongoose = (await import('mongoose')).default;
+    const col = mongoose.connection.db.collection('users');
+    const doc = await col.findOne({ email: 'nocompany@bildytest.com' }, { projection: { verificationCode: 1 } });
+    await request(app)
+      .put(`${API_USER}/validation`)
+      .set('Authorization', `Bearer ${reg.accessToken}`)
+      .send({ code: doc.verificationCode });
+
+    const { body: logged } = await request(app)
+      .post(`${API_USER}/login`)
+      .send({ email: 'nocompany@bildytest.com', password: 'SecurePass123!' });
+
+    return logged.accessToken;
+  };
+
+  it('400 — crear cliente sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app)
+      .post(API_CLIENT)
+      .set('Authorization', `Bearer ${token}`)
+      .send(clientData);
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar clientes sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app)
+      .get(API_CLIENT)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar archivados sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app)
+      .get(`${API_CLIENT}/archived`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+// ── Update cliente — CIF duplicado ────────────────────────────────────────────
+
+describe('PUT /api/client/:id — CIF duplicado al actualizar', () => {
+  it('409 — CIF ya usado por otro cliente', async () => {
+    const token = await setupUser();
+    await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`).send(clientData);
+    const { body: c2 } = await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Segundo Cliente', cif: 'B11111111' });
+
+    const res = await request(app)
+      .put(`${API_CLIENT}/${c2.client._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cif: clientData.cif });
+    expect(res.status).toBe(409);
+  });
+});

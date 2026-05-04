@@ -175,4 +175,120 @@ describe('DELETE + PATCH restore — Proyectos', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(archRes2.body.projects).toHaveLength(0);
   });
+
+  it('200 — hard delete elimina permanentemente', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    const { body } = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj Hard', projectCode: 'PRJ-HD1' });
+
+    const delRes = await request(app)
+      .delete(`${API_PROJECT}/${body.project._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(delRes.status).toBe(200);
+    expect(delRes.body.message).toMatch(/permanentemente/i);
+
+    const getRes = await request(app)
+      .get(`${API_PROJECT}/${body.project._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(getRes.status).toBe(404);
+  });
+});
+
+describe('Guardia sin empresa — project', () => {
+  const setupNoCompany = async () => {
+    const { body: reg } = await request(app)
+      .post(`${API_USER}/register`)
+      .send({ email: 'nocomp4@bildytest.com', password: 'SecurePass123!' });
+    const mongoose = (await import('mongoose')).default;
+    const col = mongoose.connection.db.collection('users');
+    const doc = await col.findOne({ email: 'nocomp4@bildytest.com' }, { projection: { verificationCode: 1 } });
+    await request(app).put(`${API_USER}/validation`).set('Authorization', `Bearer ${reg.accessToken}`).send({ code: doc.verificationCode });
+    const { body: logged } = await request(app).post(`${API_USER}/login`).send({ email: 'nocomp4@bildytest.com', password: 'SecurePass123!' });
+    return logged.accessToken;
+  };
+
+  it('400 — crear proyecto sin empresa', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`).send({ name: 'Test', projectCode: 'X' });
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar proyectos sin empresa', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).get(API_PROJECT).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar archivados sin empresa', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).get(`${API_PROJECT}/archived`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PUT /api/project/:id — Actualizar proyecto', () => {
+  it('200 — actualiza nombre del proyecto', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    const { body } = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Nombre Original', projectCode: 'PRJ-UP1' });
+
+    const res = await request(app)
+      .put(`${API_PROJECT}/${body.project._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Nombre Actualizado' });
+    expect(res.status).toBe(200);
+    expect(res.body.project.name).toBe('Nombre Actualizado');
+  });
+
+  it('409 — projectCode duplicado al actualizar', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj A', projectCode: 'PRJ-A' });
+    const { body: projB } = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj B', projectCode: 'PRJ-B' });
+
+    const res = await request(app)
+      .put(`${API_PROJECT}/${projB.project._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ projectCode: 'PRJ-A' });
+    expect(res.status).toBe(409);
+  });
+
+  it('404 — proyecto no encontrado', async () => {
+    const { token } = await setupUserWithClient();
+    const res = await request(app)
+      .put(`${API_PROJECT}/64f1234567890123456789ab`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Nuevo nombre' });
+    expect(res.status).toBe(404);
+  });
+
+  it('200 — cambia el cliente del proyecto a otro cliente válido', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    const { body: proj } = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj Change Client', projectCode: 'PRJ-CC' });
+
+    // Crear segundo cliente
+    const { body: c2 } = await request(app).post('/api/client').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Segundo Cliente', cif: 'C22222222' });
+
+    const res = await request(app)
+      .put(`${API_PROJECT}/${proj.project._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ client: c2.client._id });
+    expect(res.status).toBe(200);
+    expect(res.body.project.client.toString()).toBe(c2.client._id.toString());
+  });
+
+  it('404 — cliente inválido al actualizar proyecto', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    const { body: proj } = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj Bad Client', projectCode: 'PRJ-BC' });
+
+    const res = await request(app)
+      .put(`${API_PROJECT}/${proj.project._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ client: '64f1234567890123456789ab' });
+    expect(res.status).toBe(404);
+  });
 });
