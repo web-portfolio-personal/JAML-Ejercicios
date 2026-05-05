@@ -107,6 +107,15 @@ describe('POST /api/deliverynote — Crear albaran', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400 — albaran de horas con workers vacio', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const res = await request(app)
+      .post(API_DN)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', workers: [], workDate: '2025-06-15' });
+    expect(res.status).toBe(400);
+  });
+
   it('400 — albaran de material sin campo material', async () => {
     const { token, clientId, projectId } = await fullSetup();
     const res = await request(app)
@@ -231,5 +240,131 @@ describe('DELETE /api/deliverynote/:id — Eliminar albaran', () => {
       .get(`${API_DN}/${body.note.id}`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(404);
+  });
+
+  it('400 — no se puede eliminar un albaran firmado', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    // Marcar como firmado directamente en DB
+    await prisma.deliveryNote.update({
+      where: { id: body.note.id },
+      data: { signed: true, signedAt: new Date() },
+    });
+
+    const res = await request(app)
+      .delete(`${API_DN}/${body.note.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/firmado/i);
+  });
+});
+
+// Helper: usuario verificado SIN empresa
+const setupNoCompany = async (): Promise<string> => {
+  const email = `nocomp${Date.now()}@bildytest.com`;
+  const { body: reg } = await request(app)
+    .post('/api/user/register')
+    .send({ email, password: 'SecurePass123!' });
+  const userRecord = await prisma.user.findUnique({
+    where: { email },
+    select: { verificationCode: true },
+  });
+  await request(app).put('/api/user/validation')
+    .set('Authorization', `Bearer ${reg.accessToken}`)
+    .send({ code: userRecord?.verificationCode });
+  const { body: logged } = await request(app).post('/api/user/login').send({ email, password: 'SecurePass123!' });
+  return logged.accessToken;
+};
+
+describe('Guardia sin empresa — deliverynote', () => {
+  it('400 — crear albaran sin empresa', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: 'x', project: 'x', format: 'hours', hours: 4, workDate: '2025-06-15' });
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar albaranes sin empresa', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).get(API_DN).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/deliverynote — Validaciones extra', () => {
+  it('400 — proyecto no pertenece al cliente indicado', async () => {
+    const { token, projectId } = await fullSetup();
+
+    // Crear un segundo cliente
+    const { body: c2 } = await request(app).post('/api/client')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Otro Cliente', cif: 'Z99999999' });
+
+    const res = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({
+        client:  c2.client.id,
+        project: projectId,
+        format:  'hours',
+        hours:   4,
+        workDate: '2025-06-15',
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/proyecto no pertenece/i);
+  });
+});
+
+describe('GET /api/deliverynote — Filtros avanzados', () => {
+  it('200 — filtra por signed=true', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'material', material: 'Cemento', quantity: 10, unit: 'kg', workDate: '2025-06-16' });
+
+    await prisma.deliveryNote.update({
+      where: { id: body.note.id },
+      data: { signed: true, signedAt: new Date() },
+    });
+
+    const res = await request(app).get(`${API_DN}?signed=true`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.notes).toHaveLength(1);
+    expect(res.body.notes[0].signed).toBe(true);
+  });
+
+  it('200 — filtra por rango de fechas (from/to)', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-01-10' });
+    await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 8, workDate: '2025-06-15' });
+
+    const res = await request(app)
+      .get(`${API_DN}?from=2025-06-01&to=2025-06-30`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.notes).toHaveLength(1);
+  });
+});
+
+describe('GET /api/deliverynote/pdf/:id — PDF de albaran firmado', () => {
+  it('302 — redirige cuando el albaran ya tiene pdfUrl', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    await prisma.deliveryNote.update({
+      where: { id: body.note.id },
+      data: { signed: true, signedAt: new Date(), pdfUrl: 'https://example.com/signed.pdf' },
+    });
+
+    const res = await request(app)
+      .get(`${API_DN}/pdf/${body.note.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .redirects(0);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('https://example.com/signed.pdf');
   });
 });

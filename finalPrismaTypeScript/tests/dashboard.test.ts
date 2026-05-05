@@ -42,6 +42,23 @@ const fullSetup = async (): Promise<string> => {
   return final.accessToken;
 };
 
+// Helper: usuario verificado SIN empresa
+const setupNoCompany = async (): Promise<string> => {
+  const email = `nocomp${Date.now()}@bildytest.com`;
+  const { body: reg } = await request(app)
+    .post(`${API_USER}/register`)
+    .send({ email, password: 'SecurePass123!' });
+  const userRecord = await prisma.user.findUnique({
+    where: { email },
+    select: { verificationCode: true },
+  });
+  await request(app).put(`${API_USER}/validation`)
+    .set('Authorization', `Bearer ${reg.accessToken}`)
+    .send({ code: userRecord?.verificationCode });
+  const { body: logged } = await request(app).post(`${API_USER}/login`).send({ email, password: 'SecurePass123!' });
+  return logged.accessToken;
+};
+
 describe('GET /api/dashboard — Dashboard con aggregation', () => {
   it('401 — sin token', async () => {
     const res = await request(app).get(API_DASHBOARD);
@@ -105,5 +122,11 @@ describe('GET /api/dashboard — Dashboard con aggregation', () => {
     expect(res.body.summary.hourNotes).toBe(1);
     expect(res.body.hoursByProject.length).toBeGreaterThan(0);
     expect(res.body.hoursByProject[0].totalHours).toBe(8);
+  });
+
+  it('400 — usuario sin empresa no puede ver el dashboard', async () => {
+    const token = await setupNoCompany();
+    const res = await request(app).get(API_DASHBOARD).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
   });
 });

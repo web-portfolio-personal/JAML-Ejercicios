@@ -220,6 +220,60 @@ describe('DELETE /api/client/:id — Eliminar/archivar', () => {
   });
 });
 
+// Helper: usuario verificado SIN empresa
+const setupVerifiedNoCompany = async (): Promise<string> => {
+  const email = `nocomp${Date.now()}@bildytest.com`;
+  const { body: reg } = await request(app)
+    .post(`${API_USER}/register`)
+    .send({ email, password: 'SecurePass123!' });
+  const userRecord = await prisma.user.findUnique({
+    where: { email },
+    select: { verificationCode: true },
+  });
+  await request(app).put(`${API_USER}/validation`)
+    .set('Authorization', `Bearer ${reg.accessToken}`)
+    .send({ code: userRecord?.verificationCode });
+  const { body: logged } = await request(app).post(`${API_USER}/login`).send({ email, password: 'SecurePass123!' });
+  return logged.accessToken;
+};
+
+describe('Guardia sin empresa — usuario sin company', () => {
+  it('400 — crear cliente sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Test Client', cif: 'A11111111' });
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar clientes sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app).get(API_CLIENT).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — listar archivados sin empresa', async () => {
+    const token = await setupVerifiedNoCompany();
+    const res = await request(app).get(`${API_CLIENT}/archived`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PUT /api/client/:id — CIF duplicado al actualizar', () => {
+  it('409 — CIF duplicado al actualizar', async () => {
+    const token = await setupUser();
+    await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Cliente A', cif: 'X11111111' });
+    const { body: clientB } = await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Cliente B', cif: 'X22222222' });
+
+    const res = await request(app)
+      .put(`${API_CLIENT}/${clientB.client.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cif: 'X11111111' });
+    expect(res.status).toBe(409);
+  });
+});
+
 describe('GET /api/client/archived + PATCH /api/client/:id/restore', () => {
   it('200 — lista archivados y restaura correctamente', async () => {
     const token = await setupUser();
