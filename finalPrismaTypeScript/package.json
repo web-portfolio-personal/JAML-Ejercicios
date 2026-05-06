@@ -9,6 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "test": "cross-env NODE_ENV=test jest --forceExit --detectOpenHandles --runInBand",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage",
     "seed": "tsx scripts/seed.ts"
   },
   "engines": {

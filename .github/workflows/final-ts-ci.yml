@@ -1,0 +1,49 @@
+name: Final TS — CI Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'finalPrismaTypeScript/**'
+      - '.github/workflows/final-ts-ci.yml'
+  pull_request:
+    paths:
+      - 'finalPrismaTypeScript/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: file:./prisma/test.db
+      JWT_SECRET: test-secret-32-characters-long-ok!
+      JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long!!
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PUBLIC_URL: http://localhost:3000
+
+    defaults:
+      run:
+        working-directory: finalPrismaTypeScript
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: finalPrismaTypeScript/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      - name: Ejecutar tests
+        run: npm test

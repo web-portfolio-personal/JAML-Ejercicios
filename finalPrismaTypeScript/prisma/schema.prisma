@@ -15,10 +15,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ── Para usar SQLite (dev/test local): provider = "sqlite", url = file:./dev.db
+// ── Para usar PostgreSQL (Supabase producción):
+//      provider = "postgresql", url = env("DATABASE_URL"), directUrl = env("DIRECT_URL")
+//      Ejecutar: npx prisma db push   (o prisma migrate dev)
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // ── Empresa ───────────────────────────────────────────────────────────────────
