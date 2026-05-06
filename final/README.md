@@ -113,7 +113,7 @@ npm run dev
 | `POST` | `/api/deliverynote` | JWT | Crear albarán (formato `hours` o `material`) |
 | `GET` | `/api/deliverynote` | JWT | Listar albaranes (`?page`, `?limit`, `?format`, `?project`, `?client`) |
 | `GET` | `/api/deliverynote/:id` | JWT | Obtener albarán con datos populados |
-| `GET` | `/api/deliverynote/:id/pdf` | JWT | Descargar PDF del albarán |
+| `GET` | `/api/deliverynote/pdf/:id` | JWT | Descargar PDF del albarán |
 | `PATCH` | `/api/deliverynote/:id/sign` | JWT | Firmar albarán (multipart: campo `signature`) |
 | `DELETE` | `/api/deliverynote/:id` | JWT | Eliminar albarán (solo si no está firmado) |
 

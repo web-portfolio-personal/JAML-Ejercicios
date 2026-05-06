@@ -45,5 +45,8 @@ jobs:
       - name: Generar cliente Prisma
         run: npx prisma generate
 
+      - name: Aplicar esquema a la base de datos de test
+        run: npx prisma db push --force-reset
+
       - name: Ejecutar tests
         run: npm test
