@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/index.js",
     "start": "node src/index.js",
-    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --detectOpenHandles --runInBand",
+    "test": "cross-env NODE_ENV=test NODE_OPTIONS=--disable-warning=ExperimentalWarning node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --detectOpenHandles --runInBand",
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage"
   },
