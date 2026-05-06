@@ -683,4 +683,5 @@ describe('PATCH /api/user/logo — Subir logo', () => {
       .attach('logo', pngBuffer, { filename: 'logo.png', contentType: 'image/png' });
     expect(res.status).toBe(400);
   });
+
 });

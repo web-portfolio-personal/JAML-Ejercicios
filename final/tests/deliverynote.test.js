@@ -108,6 +108,15 @@ describe('POST /api/deliverynote — Crear albarán', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400 — albarán de horas con workers vacío', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const res = await request(app)
+      .post(API_DN)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', workers: [], workDate: '2025-06-15' });
+    expect(res.status).toBe(400);
+  });
+
   it('400 — albarán de material sin campo material', async () => {
     const { token, clientId, projectId } = await fullSetup();
     const res = await request(app)
@@ -325,7 +334,9 @@ describe('Guardia sin empresa — deliverynote', () => {
 
   it('400 — crear albarán sin empresa', async () => {
     const token = await setupNoCompany();
-    const res = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`).send({});
+    // Usar ObjectIds válidos para que Zod no rechace antes de llegar al controlador
+    const res = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: '64f1234567890123456789ab', project: '64f1234567890123456789ab', format: 'hours', hours: 4, workDate: '2025-06-15' });
     expect(res.status).toBe(400);
   });
 

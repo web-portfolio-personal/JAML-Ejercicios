@@ -73,6 +73,22 @@ describe('GET /api/dashboard — Dashboard con aggregation', () => {
     expect(typeof summary.totalClients).toBe('number');
   });
 
+  it('400 — usuario sin empresa no puede ver el dashboard', async () => {
+    const { body: reg } = await request(app)
+      .post(`${API_USER}/register`)
+      .send({ email: 'nodash@bildytest.com', password: 'SecurePass123!' });
+    const mongoose = (await import('mongoose')).default;
+    const col = mongoose.connection.db.collection('users');
+    const doc = await col.findOne({ email: 'nodash@bildytest.com' }, { projection: { verificationCode: 1 } });
+    await request(app).put(`${API_USER}/validation`)
+      .set('Authorization', `Bearer ${reg.accessToken}`)
+      .send({ code: doc.verificationCode });
+    const { body: logged } = await request(app).post(`${API_USER}/login`).send({ email: 'nodash@bildytest.com', password: 'SecurePass123!' });
+
+    const res = await request(app).get(API_DASHBOARD).set('Authorization', `Bearer ${logged.accessToken}`);
+    expect(res.status).toBe(400);
+  });
+
   it('200 — con datos reales, notesByMonth incluye los albaranes creados', async () => {
     const token = await fullSetup();
 

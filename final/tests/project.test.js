@@ -127,6 +127,20 @@ describe('GET /api/project — Listar proyectos', () => {
     expect(res.body.projects).toHaveLength(1);
     expect(res.body.projects[0].name).toBe('Reforma');
   });
+
+  it('200 — filtra por active=false (proyectos inactivos)', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Activo', projectCode: 'PRJ-ACT', active: true });
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Inactivo', projectCode: 'PRJ-INA', active: false });
+
+    const res = await request(app)
+      .get(`${API_PROJECT}?active=false`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.body.projects).toHaveLength(1);
+    expect(res.body.projects[0].name).toBe('Inactivo');
+  });
 });
 
 describe('GET /api/project/:id — Obtener proyecto', () => {
@@ -209,7 +223,9 @@ describe('Guardia sin empresa — project', () => {
 
   it('400 — crear proyecto sin empresa', async () => {
     const token = await setupNoCompany();
-    const res = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`).send({ name: 'Test', projectCode: 'X' });
+    // Usar ObjectId válido para que Zod no rechace antes de llegar al controlador
+    const res = await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Test', projectCode: 'PRJ-NC', client: '64f1234567890123456789ab' });
     expect(res.status).toBe(400);
   });
 
