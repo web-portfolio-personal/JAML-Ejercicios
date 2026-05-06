@@ -118,6 +118,11 @@ export const getDeliveryNote = async (req, res, next) => {
 
   if (!note) return next(AppError.notFound('Albarán no encontrado'));
 
+  // Regla owner-or-guest: los guests solo pueden ver sus propios albaranes
+  if (req.user.role !== 'admin' && note.user?._id?.toString() !== req.user._id.toString()) {
+    return next(AppError.forbidden('No tienes permiso para acceder a este albarán'));
+  }
+
   res.json({ note });
 };
 
@@ -134,6 +139,11 @@ export const downloadPdf = async (req, res, next) => {
     .populate('project', 'name projectCode');
 
   if (!note) return next(AppError.notFound('Albarán no encontrado'));
+
+  // Regla owner-or-guest: los guests solo pueden descargar sus propios albaranes
+  if (req.user.role !== 'admin' && note.user?._id?.toString() !== req.user._id.toString()) {
+    return next(AppError.forbidden('No tienes permiso para descargar este albarán'));
+  }
 
   // Si ya tiene PDF firmado en la nube, redirigir
   if (note.signed && note.pdfUrl) {

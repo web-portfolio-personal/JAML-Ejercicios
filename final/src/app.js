@@ -54,7 +54,20 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 // ── Seguridad ─────────────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    // Swagger UI necesita cargar scripts inline y CDN propios
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'", 'unpkg.com'],
+        styleSrc:    ["'self'", "'unsafe-inline'", 'unpkg.com'],
+        imgSrc:      ["'self'", 'data:', 'unpkg.com'],
+        connectSrc:  ["'self'"],
+      },
+    },
+  })
+);
 app.use(cors());
 
 // Rate limiting global
