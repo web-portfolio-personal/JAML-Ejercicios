@@ -129,4 +129,36 @@ describe('GET /api/dashboard — Dashboard con aggregation', () => {
     const res = await request(app).get(API_DASHBOARD).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(400);
   });
+
+  it('200 — materialsByClient populated when material delivery notes exist', async () => {
+    const token = await fullSetup();
+
+    const { body: cl } = await request(app).post('/api/client')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Cliente Material SL', cif: 'M87654321' });
+
+    const { body: pr } = await request(app).post('/api/project')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ client: cl.client.id, name: 'Proyecto Material', projectCode: 'MAT-001' });
+
+    await request(app).post('/api/deliverynote')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        client:   cl.client.id,
+        project:  pr.project.id,
+        format:   'material',
+        material: 'Cemento Portland',
+        quantity: 20,
+        unit:     'sacos',
+        workDate: new Date().toISOString().split('T')[0],
+      });
+
+    const res = await request(app)
+      .get(API_DASHBOARD)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.materialsByClient.length).toBeGreaterThan(0);
+    expect(res.body.summary.materialNotes).toBe(1);
+  });
 });

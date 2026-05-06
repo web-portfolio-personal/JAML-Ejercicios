@@ -349,6 +349,43 @@ describe('GET /api/deliverynote — Filtros avanzados', () => {
   });
 });
 
+describe('PATCH /api/deliverynote/:id/sign — firmar albaran (error paths)', () => {
+  it('404 — albaran no encontrado', async () => {
+    const { token } = await fullSetup();
+    const res = await request(app)
+      .patch(`${API_DN}/nonexistent-id-xyz/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('400 — albaran ya firmado', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    await prisma.deliveryNote.update({
+      where: { id: body.note.id },
+      data: { signed: true, signedAt: new Date() },
+    });
+
+    const res = await request(app)
+      .patch(`${API_DN}/${body.note.id}/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('400 — sin imagen de firma (no file attached)', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    const res = await request(app)
+      .patch(`${API_DN}/${body.note.id}/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('GET /api/deliverynote/pdf/:id — PDF de albaran firmado', () => {
   it('302 — redirige cuando el albaran ya tiene pdfUrl', async () => {
     const { token, clientId, projectId } = await fullSetup();
