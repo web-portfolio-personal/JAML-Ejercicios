@@ -28,12 +28,223 @@ router.use(authMiddleware);
  *   description: Gestión de proyectos
  */
 
-router.post('/',            validate(createProjectSchema), createProject);
-router.get('/',             validate(listProjectSchema),   listProjects);
-router.get('/archived',                                    listArchivedProjects);
-router.get('/:id',          validate(idParamSchema),       getProject);
-router.put('/:id',          validate(updateProjectSchema), updateProject);
-router.delete('/:id',       validate(idParamSchema),       deleteProject);
-router.patch('/:id/restore',validate(idParamSchema),       restoreProject);
+/**
+ * @swagger
+ * /api/project:
+ *   post:
+ *     tags: [Projects]
+ *     summary: Crear un proyecto
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ProjectInput'
+ *     responses:
+ *       201:
+ *         description: Proyecto creado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       400:
+ *         description: Error de validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Código de proyecto duplicado en la compañía
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/', validate(createProjectSchema), createProject);
+
+/**
+ * @swagger
+ * /api/project:
+ *   get:
+ *     tags: [Projects]
+ *     summary: Listar proyectos activos
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *         description: Resultados por página
+ *       - in: query
+ *         name: name
+ *         schema: { type: string }
+ *         description: Filtro parcial por nombre
+ *       - in: query
+ *         name: client
+ *         schema: { type: string }
+ *         description: Filtrar por ID de cliente
+ *       - in: query
+ *         name: active
+ *         schema: { type: boolean }
+ *         description: Filtrar por estado activo/inactivo
+ *       - in: query
+ *         name: sort
+ *         schema: { type: string, default: '-createdAt' }
+ *         description: Campo de ordenación (prefijo - para DESC)
+ *     responses:
+ *       200:
+ *         description: Lista paginada de proyectos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Project'
+ *                 total:    { type: integer }
+ *                 page:     { type: integer }
+ *                 limit:    { type: integer }
+ *                 pages:    { type: integer }
+ */
+router.get('/', validate(listProjectSchema), listProjects);
+
+/**
+ * @swagger
+ * /api/project/archived:
+ *   get:
+ *     tags: [Projects]
+ *     summary: Listar proyectos archivados (soft-deleted)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de proyectos archivados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Project'
+ */
+router.get('/archived', listArchivedProjects);
+
+/**
+ * @swagger
+ * /api/project/{id}:
+ *   get:
+ *     tags: [Projects]
+ *     summary: Obtener un proyecto por ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID del proyecto
+ *     responses:
+ *       200:
+ *         description: Datos del proyecto
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       404:
+ *         description: Proyecto no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', validate(idParamSchema), getProject);
+
+/**
+ * @swagger
+ * /api/project/{id}:
+ *   put:
+ *     tags: [Projects]
+ *     summary: Actualizar un proyecto
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ProjectInput'
+ *     responses:
+ *       200:
+ *         description: Proyecto actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       404:
+ *         description: Proyecto no encontrado
+ *       409:
+ *         description: Código de proyecto duplicado
+ */
+router.put('/:id', validate(updateProjectSchema), updateProject);
+
+/**
+ * @swagger
+ * /api/project/{id}:
+ *   delete:
+ *     tags: [Projects]
+ *     summary: Eliminar un proyecto (soft o hard delete)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: soft
+ *         schema: { type: boolean, default: true }
+ *         description: "true = archivar (soft delete), false = eliminar permanentemente"
+ *     responses:
+ *       200:
+ *         description: Proyecto archivado
+ *       204:
+ *         description: Proyecto eliminado permanentemente
+ *       404:
+ *         description: Proyecto no encontrado
+ */
+router.delete('/:id', validate(idParamSchema), deleteProject);
+
+/**
+ * @swagger
+ * /api/project/{id}/restore:
+ *   patch:
+ *     tags: [Projects]
+ *     summary: Restaurar un proyecto archivado
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Proyecto restaurado correctamente
+ *       404:
+ *         description: Proyecto no encontrado o no está archivado
+ */
+router.patch('/:id/restore', validate(idParamSchema), restoreProject);
 
 export default router;
