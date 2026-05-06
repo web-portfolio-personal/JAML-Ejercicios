@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=--disable-warning=ExperimentalWarning node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --detectOpenHandles --runInBand",
     "test:watch": "npm test -- --watch",
-    "test:coverage": "npm test -- --coverage"
+    "test:coverage": "npm test -- --coverage",
+    "seed": "node scripts/seed.js"
   },
   "engines": {
     "node": ">=22.0.0"
