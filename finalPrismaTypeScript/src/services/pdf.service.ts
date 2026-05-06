@@ -47,13 +47,31 @@ interface GeneratePdfOptions {
 
 /**
  * Genera el PDF de un albaran y devuelve un Buffer.
+ *
+ * Si el albaran esta firmado y tiene signatureUrl, descarga la imagen de la firma
+ * y la incrusta directamente en el PDF usando pdfkit doc.image().
+ * Si la descarga falla, muestra la URL como texto de respaldo.
  */
-export const generateDeliveryNotePdf = ({
+export const generateDeliveryNotePdf = async ({
   note,
   user,
   client,
   project,
 }: GeneratePdfOptions): Promise<Buffer> => {
+  // Pre-descargar la imagen de firma antes de iniciar el stream del PDF
+  let signatureBuffer: Buffer | null = null;
+  if (note.signed && note.signatureUrl) {
+    try {
+      const response = await fetch(note.signatureUrl);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        signatureBuffer = Buffer.from(arrayBuffer);
+      }
+    } catch {
+      // Error de red o URL invalida — se usara texto de respaldo
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     const chunks: Buffer[] = [];
@@ -164,7 +182,14 @@ export const generateDeliveryNotePdf = ({
         )
         .moveDown(0.5);
 
-      if (note.signatureUrl) {
+      if (signatureBuffer) {
+        // Imagen de firma descargada — incrustar directamente en el PDF
+        doc.image(signatureBuffer, {
+          fit:   [200, 80],
+          align: 'center',
+        }).moveDown(0.5);
+      } else if (note.signatureUrl) {
+        // Fallback: URL no descargable — mostrar referencia de texto
         doc.text(`Firma digital: ${note.signatureUrl}`, { align: 'center' });
       }
     } else {

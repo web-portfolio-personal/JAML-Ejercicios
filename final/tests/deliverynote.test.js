@@ -347,6 +347,48 @@ describe('Guardia sin empresa — deliverynote', () => {
   });
 });
 
+describe('PATCH /api/deliverynote/:id/sign — Firmar albarán (rutas de error)', () => {
+  it('404 — albarán inexistente', async () => {
+    const { token } = await fullSetup();
+    const res = await request(app)
+      .patch(`${API_DN}/64f1234567890123456789ab/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('400 — albarán ya está firmado', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    // Marcar como firmado directamente en DB
+    const mongoose = (await import('mongoose')).default;
+    await mongoose.connection.db.collection('deliverynotes').updateOne(
+      { _id: new mongoose.Types.ObjectId(body.note._id) },
+      { $set: { signed: true, signedAt: new Date() } }
+    );
+
+    const res = await request(app)
+      .patch(`${API_DN}/${body.note._id}/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/firmado/i);
+  });
+
+  it('400 — no se adjunta fichero de firma', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+
+    const res = await request(app)
+      .patch(`${API_DN}/${body.note._id}/sign`)
+      .set('Authorization', `Bearer ${token}`);
+    // no .attach() → req.file is undefined
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/firma/i);
+  });
+});
+
 describe('POST /api/deliverynote — Validaciones extra', () => {
   it('400 — proyecto no pertenece al cliente indicado', async () => {
     const { token, clientId } = await fullSetup();

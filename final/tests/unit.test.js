@@ -10,8 +10,39 @@
  *  - notFoundHandler          (middleware/…)         — basic path
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
 import mongoose from 'mongoose';
+import zlib from 'node:zlib';
+import checkRole from '../src/middleware/role.middleware.js';
+
+// ── Minimal valid PNG generator ───────────────────────────────────────────────
+// Builds a 1×1 white RGB PNG using proper zlib compression and CRC32.
+function createMinimalPng() {
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c;
+    }
+    return t;
+  })();
+  const crc32 = (buf) => {
+    let c = 0xffffffff;
+    for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const t = Buffer.from(type, 'ascii');
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(Buffer.concat([t, data])));
+    return Buffer.concat([len, t, data, crc]);
+  };
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const ihdr = Buffer.from([0,0,0,1, 0,0,0,1, 8, 2, 0, 0, 0]); // 1×1 RGB
+  const raw  = Buffer.from([0, 255, 255, 255]); // filter=none, white pixel
+  return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
 import { generateDeliveryNotePdf } from '../src/services/pdf.service.js';
 import AppError from '../src/utils/AppError.js';
 import { notFoundHandler, errorHandler } from '../src/middleware/error-handler.js';
@@ -40,6 +71,28 @@ const BASE_NOTE = {
 const BASE_USER    = { name: 'Juan', lastName: 'García', email: 'juan@test.com', nif: '12345678A' };
 const BASE_CLIENT  = { name: 'ClienteCo', cif: 'B12345678', email: 'client@test.com' };
 const BASE_PROJECT = { name: 'Obra Norte', projectCode: 'PRJ-001' };
+
+// ── checkRole middleware ───────────────────────────────────────────────────────
+
+describe('checkRole', () => {
+  it('calls next(AppError 401) when req.user is not set', () => {
+    const next = jest.fn();
+    checkRole('admin')({}, {}, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
+  });
+
+  it('calls next(AppError 403) when user has a different role', () => {
+    const next = jest.fn();
+    checkRole('admin')({ user: { role: 'user' } }, {}, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
+  });
+
+  it('calls next() with no args when role is permitted', () => {
+    const next = jest.fn();
+    checkRole('admin')({ user: { role: 'admin' } }, {}, next);
+    expect(next).toHaveBeenCalledWith();
+  });
+});
 
 // ── AppError ───────────────────────────────────────────────────────────────────
 
@@ -183,7 +236,59 @@ describe('errorHandler', () => {
 // ── generateDeliveryNotePdf ────────────────────────────────────────────────────
 
 describe('generateDeliveryNotePdf', () => {
-  it('generates a PDF buffer for a signed "material" note with description and signatureUrl', async () => {
+  let originalFetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('embeds signature image when fetch succeeds (response.ok = true)', async () => {
+    // Build a proper 1×1 white PNG so pdfkit can embed it
+    const validPng = createMinimalPng();
+    global.fetch = async () => ({
+      ok: true,
+      arrayBuffer: async () => validPng,
+    });
+
+    const note = {
+      ...BASE_NOTE,
+      format:       'hours',
+      hours:        4,
+      signed:       true,
+      signedAt:     new Date('2024-06-02'),
+      signatureUrl: 'https://res.cloudinary.com/test/sign.webp',
+    };
+
+    const buf = await generateDeliveryNotePdf({ note, user: BASE_USER, client: BASE_CLIENT, project: BASE_PROJECT });
+    expect(Buffer.isBuffer(buf)).toBe(true);
+    expect(buf.length).toBeGreaterThan(500);
+  });
+
+  it('falls back to URL text when fetch returns response.ok = false', async () => {
+    global.fetch = async () => ({ ok: false });
+
+    const note = {
+      ...BASE_NOTE,
+      format:       'material',
+      material:     'Cemento',
+      quantity:     10,
+      unit:         'sacos',
+      signed:       true,
+      signedAt:     new Date('2024-06-02'),
+      signatureUrl: 'https://res.cloudinary.com/test/sign.webp',
+    };
+
+    const buf = await generateDeliveryNotePdf({ note, user: BASE_USER, client: BASE_CLIENT, project: BASE_PROJECT });
+    expect(Buffer.isBuffer(buf)).toBe(true);
+  });
+
+  it('falls back to URL text when fetch throws (network error)', async () => {
+    global.fetch = async () => { throw new Error('Network error'); };
+
     const note = {
       ...BASE_NOTE,
       format:       'material',
@@ -280,6 +385,32 @@ describe('generateDeliveryNotePdf', () => {
     };
 
     const buf = await generateDeliveryNotePdf({ note, user: BASE_USER, client: BASE_CLIENT, project: BASE_PROJECT });
+    expect(Buffer.isBuffer(buf)).toBe(true);
+  });
+
+  it('generates a PDF with all optional fields null/undefined (covers || and ?? false sides)', async () => {
+    // user with no name, lastName, nif  → user.name || '' and user.lastName || '' use right side
+    const minimalUser = { email: undefined };           // even email undefined
+    // client with no name, cif, email  → all || and ?: false sides
+    const minimalClient = { name: null, cif: null, email: null };
+    // project with no name or code     → || and ?: false sides
+    const minimalProject = { name: null, projectCode: null };
+    // material note with null material, quantity, unit → || and ?? false sides
+    const note = {
+      ...BASE_NOTE,
+      format:   'material',
+      material: null,
+      quantity: null,
+      unit:     null,
+      signed:   false,
+    };
+
+    const buf = await generateDeliveryNotePdf({
+      note,
+      user:    minimalUser,
+      client:  minimalClient,
+      project: minimalProject,
+    });
     expect(Buffer.isBuffer(buf)).toBe(true);
   });
 });

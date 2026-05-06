@@ -3,6 +3,10 @@ import PDFDocument from 'pdfkit';
 /**
  * Genera el PDF de un albarán y devuelve un Buffer.
  *
+ * Si el albarán está firmado y tiene signatureUrl, descarga la imagen de la firma
+ * y la incrusta directamente en el PDF usando pdfkit doc.image().
+ * Si la descarga falla, muestra la URL como texto de respaldo.
+ *
  * @param {Object} options
  * @param {Object} options.note - Documento DeliveryNote populado
  * @param {Object} options.user - Usuario que genera el PDF
@@ -10,7 +14,21 @@ import PDFDocument from 'pdfkit';
  * @param {Object} options.project - Proyecto del albarán
  * @returns {Promise<Buffer>}
  */
-export const generateDeliveryNotePdf = ({ note, user, client, project }) => {
+export const generateDeliveryNotePdf = async ({ note, user, client, project }) => {
+  // Pre-descargar la imagen de firma antes de iniciar el stream del PDF
+  let signatureBuffer = null;
+  if (note.signed && note.signatureUrl) {
+    try {
+      const response = await fetch(note.signatureUrl);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        signatureBuffer = Buffer.from(arrayBuffer);
+      }
+    } catch {
+      // Error de red o URL inválida — se usará texto de respaldo
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     const chunks = [];
@@ -118,9 +136,14 @@ export const generateDeliveryNotePdf = ({ note, user, client, project }) => {
         .text(`Fecha de firma: ${new Date(note.signedAt).toLocaleDateString('es-ES')}`, { align: 'center' })
         .moveDown(0.5);
 
-      if (note.signatureUrl) {
-        // Nota: image() solo funciona con paths locales o buffers en pdfkit
-        // La URL de Cloudinary requeriría descargar primero; indicamos la referencia
+      if (signatureBuffer) {
+        // Imagen de firma descargada — incrustar directamente en el PDF
+        doc.image(signatureBuffer, {
+          fit:   [200, 80],
+          align: 'center',
+        }).moveDown(0.5);
+      } else if (note.signatureUrl) {
+        // Fallback: URL no descargable (error de red) — mostrar referencia de texto
         doc.text(`Firma digital: ${note.signatureUrl}`, { align: 'center' });
       }
     } else {
