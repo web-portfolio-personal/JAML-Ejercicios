@@ -11,7 +11,7 @@ API REST completa para la gestión de albaranes digitales de BildyApp. Implement
 | Base de datos | **MongoDB Atlas** + **Mongoose 8** |
 | Validación | **Zod** — transform, refine, discriminatedUnion |
 | Auth | **JWT** — access (15 min) + refresh (7 días) con `jti` único |
-| Passwords | **bcryptjs** — hash 10 rondas, complejidad validada |
+| Passwords | **`node:crypto` scrypt** — nativo Node.js, salt aleatorio, `timingSafeEqual` |
 | Archivos locales | **Multer** — diskStorage + memoryStorage |
 | Almacenamiento cloud | **Cloudinary v2** + **Sharp** (resize 800px, WebP) |
 | PDF | **pdfkit** — generación en memoria (Buffer) |
