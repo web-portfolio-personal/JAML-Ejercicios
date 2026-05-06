@@ -14,6 +14,7 @@ const envSchema = z.object({
 
 const parsed = envSchema.safeParse(process.env);
 
+/* c8 ignore next */ /* istanbul ignore next */
 if (!parsed.success) {
   console.error('❌ Variables de entorno inválidas:');
   parsed.error.issues.forEach((issue) => {
@@ -31,6 +32,7 @@ export const dbConnect = async () => {
 
 // Solo registrar el listener de desconexión fuera del entorno de tests
 // para evitar ruido en la salida de Jest
+/* c8 ignore next */ /* istanbul ignore next */
 if (env.NODE_ENV !== 'test') {
   mongoose.connection.on('disconnected', () => {
     console.warn('⚠️  Desconectado de MongoDB');

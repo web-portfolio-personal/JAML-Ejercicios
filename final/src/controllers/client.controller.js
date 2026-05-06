@@ -35,7 +35,7 @@ export const createClient = async (req, res, next) => {
 
   // Emitir evento Socket.IO a la sala de la compañía
   const io = req.app.get('io');
-  if (io) io.to(req.user.company.toString()).emit('client:new', { client });
+  io?.to(req.user.company.toString()).emit('client:new', { client });
 
   res.status(201).json({ client });
 };

@@ -128,6 +128,18 @@ describe('GET /api/project — Listar proyectos', () => {
     expect(res.body.projects[0].name).toBe('Reforma');
   });
 
+  it('200 — filtra por cliente', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Proj Filtrado', projectCode: 'PRJ-F01' });
+
+    const res = await request(app)
+      .get(`${API_PROJECT}?client=${clientId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.projects).toHaveLength(1);
+  });
+
   it('200 — filtra por active=false (proyectos inactivos)', async () => {
     const { token, clientId } = await setupUserWithClient();
     await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
@@ -306,5 +318,46 @@ describe('PUT /api/project/:id — Actualizar proyecto', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ client: '64f1234567890123456789ab' });
     expect(res.status).toBe(404);
+  });
+});
+
+// ── Delete + Restore 404 ──────────────────────────────────────────────────────
+
+describe('DELETE /api/project/:id — 404 inexistente', () => {
+  it('404 — proyecto no encontrado al eliminar', async () => {
+    const { token } = await setupUserWithClient();
+    const res = await request(app)
+      .delete(`${API_PROJECT}/64f1234567890123456789ab`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /api/project/:id/restore — 404 si no está archivado', () => {
+  it('404 — proyecto no archivado / inexistente al restaurar', async () => {
+    const { token } = await setupUserWithClient();
+    const res = await request(app)
+      .patch(`${API_PROJECT}/64f1234567890123456789ab/restore`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+// ── buildSort ascending ───────────────────────────────────────────────────────
+
+describe('GET /api/project — ordenación ascendente (buildSort)', () => {
+  it('200 — ordena ascendente con ?sort=name (sin prefijo -)', async () => {
+    const { token, clientId } = await setupUserWithClient();
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Zebra Project', projectCode: 'PRJ-Z' });
+    await request(app).post(API_PROJECT).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, name: 'Alpha Project', projectCode: 'PRJ-A' });
+
+    const res = await request(app)
+      .get(`${API_PROJECT}?sort=name`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.projects[0].name).toBe('Alpha Project');
+    expect(res.body.projects[1].name).toBe('Zebra Project');
   });
 });

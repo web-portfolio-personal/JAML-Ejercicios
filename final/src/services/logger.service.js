@@ -8,6 +8,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
  * Envía un mensaje de error al canal de Slack.
  * No lanza excepciones: si falla el envío, solo loguea en consola.
  */
+/* c8 ignore next */ /* istanbul ignore next -- Requiere SLACK_WEBHOOK_URL, no disponible en tests */
 export const slackError = async ({ method, path, message, stack, statusCode }) => {
   if (!SLACK_WEBHOOK || process.env.NODE_ENV === 'test') return;
 

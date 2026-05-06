@@ -315,4 +315,69 @@ describe('PUT /api/client/:id — CIF duplicado al actualizar', () => {
       .send({ cif: clientData.cif });
     expect(res.status).toBe(409);
   });
+
+  it('404 — cliente no encontrado al actualizar', async () => {
+    const token = await setupUser();
+    const res = await request(app)
+      .put(`${API_CLIENT}/64f1234567890123456789ab`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Nombre nuevo' });
+    expect(res.status).toBe(404);
+  });
+
+  it('200 — actualiza CIF a uno nuevo único (no duplicado)', async () => {
+    const token = await setupUser();
+    const { body } = await request(app)
+      .post(API_CLIENT).set('Authorization', `Bearer ${token}`).send(clientData);
+
+    const res = await request(app)
+      .put(`${API_CLIENT}/${body.client._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cif: 'Z99999999' });
+    expect(res.status).toBe(200);
+    expect(res.body.client.cif).toBe('Z99999999');
+  });
+});
+
+// ── Delete cliente — 404 ──────────────────────────────────────────────────────
+
+describe('DELETE /api/client/:id — 404 si no existe', () => {
+  it('404 — cliente no encontrado al eliminar', async () => {
+    const token = await setupUser();
+    const res = await request(app)
+      .delete(`${API_CLIENT}/64f1234567890123456789ab`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+// ── Restore cliente — 404 ─────────────────────────────────────────────────────
+
+describe('PATCH /api/client/:id/restore — 404 si no está archivado', () => {
+  it('404 — cliente no archivado / inexistente al restaurar', async () => {
+    const token = await setupUser();
+    const res = await request(app)
+      .patch(`${API_CLIENT}/64f1234567890123456789ab/restore`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+// ── buildSort ascending ───────────────────────────────────────────────────────
+
+describe('GET /api/client — ordenación ascendente (buildSort)', () => {
+  it('200 — ordena ascendente con ?sort=name (sin prefijo -)', async () => {
+    const token = await setupUser();
+    await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Zebra Corp', cif: 'Z11111111' });
+    await request(app).post(API_CLIENT).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Alpha SL', cif: 'A11111111' });
+
+    const res = await request(app)
+      .get(`${API_CLIENT}?sort=name`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.clients[0].name).toBe('Alpha SL');
+    expect(res.body.clients[1].name).toBe('Zebra Corp');
+  });
 });

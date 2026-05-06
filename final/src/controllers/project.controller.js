@@ -47,7 +47,7 @@ export const createProject = async (req, res, next) => {
 
   // Emitir evento Socket.IO
   const io = req.app.get('io');
-  if (io) io.to(req.user.company.toString()).emit('project:new', { project });
+  io?.to(req.user.company.toString()).emit('project:new', { project });
 
   res.status(201).json({ project });
 };

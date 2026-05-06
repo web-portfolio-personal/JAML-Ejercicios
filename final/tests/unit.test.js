@@ -8,6 +8,7 @@
  *                                                      LIMIT_FILE_SIZE, LIMIT_FILE_TYPE,
  *                                                      statusCode >= 500, isDev stack
  *  - notFoundHandler          (middleware/…)         — basic path
+ *  - NoSQL sanitize middleware (app.js)              — body with $-prefixed keys
  */
 
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';

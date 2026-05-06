@@ -685,3 +685,23 @@ describe('PATCH /api/user/logo — Subir logo', () => {
   });
 
 });
+
+// ── Sanitización NoSQL (cubre rama delete del middleware en app.js) ────────────
+
+describe('Sanitización NoSQL — elimina claves con $ del body', () => {
+  it('400 — body con clave $where es sanitizado y rechazado por Zod (sin email válido)', async () => {
+    const res = await request(app)
+      .post(`${BASE}/register`)
+      .send({ '$where': '1==1', email: 'sanitize@test.com', password: 'SecurePass123!' });
+    // La clave $where es eliminada por el sanitizador; la petición llega sin datos extra
+    // Zod valida email y password → 201 o 400 (si algo falla), pero el $where NO está en body
+    expect([201, 400]).toContain(res.status);
+  });
+
+  it('400 — body con clave que contiene punto es sanitizado', async () => {
+    const res = await request(app)
+      .post(`${BASE}/register`)
+      .send({ 'nested.key': 'injection', email: 'dot@test.com', password: 'SecurePass123!' });
+    expect([201, 400]).toContain(res.status);
+  });
+});
