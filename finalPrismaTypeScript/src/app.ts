@@ -48,25 +48,21 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 // Seguridad
-app.use(helmet());
+app.use(
+  helmet({
+    // Swagger UI necesita cargar scripts inline y CDN propios
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'", 'unpkg.com'],
+        styleSrc:    ["'self'", "'unsafe-inline'", 'unpkg.com'],
+        imgSrc:      ["'self'", 'data:', 'unpkg.com'],
+        connectSrc:  ["'self'"],
+      },
+    },
+  })
+);
 app.use(cors());
-
-// Sanitizacion NoSQL-like (limpia claves con $ y .)
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  const sanitize = (obj: unknown): void => {
-    if (typeof obj !== 'object' || obj === null) return;
-    for (const key of Object.keys(obj as object)) {
-      if (key.startsWith('$') || key.includes('.')) {
-        delete (obj as Record<string, unknown>)[key];
-      } else {
-        sanitize((obj as Record<string, unknown>)[key]);
-      }
-    }
-  };
-  sanitize(req.body);
-  sanitize(req.params);
-  next();
-});
 
 // Rate limiting global
 app.use(
@@ -87,6 +83,23 @@ if (process.env.NODE_ENV !== 'test') {
 // Parseo de body
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Sanitizacion NoSQL-like (limpia claves con $ y .) — debe ir DESPUES del body parser
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const sanitize = (obj: unknown): void => {
+    if (typeof obj !== 'object' || obj === null) return;
+    for (const key of Object.keys(obj as object)) {
+      if (key.startsWith('$') || key.includes('.')) {
+        delete (obj as Record<string, unknown>)[key];
+      } else {
+        sanitize((obj as Record<string, unknown>)[key]);
+      }
+    }
+  };
+  sanitize(req.body);
+  sanitize(req.params);
+  next();
+});
 
 // Archivos estaticos (logos locales)
 app.use('/uploads', express.static(join(__dirname, '../uploads')));

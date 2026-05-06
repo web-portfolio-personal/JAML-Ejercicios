@@ -25,4 +25,8 @@ USER nodeapp
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "src/index.js"]
+# Verifica que el servidor responde y que la DB está conectada.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health | grep -q '"db":"connected"' || exit 1
+
+CMD ["node", "dist/index.js"]
