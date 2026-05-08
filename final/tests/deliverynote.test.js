@@ -1,26 +1,54 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import request from 'supertest';
-import app from '../src/app.js';
-import { connectTestDb, clearDb, disconnectTestDb } from './helpers/db.helper.js';
+/**
+ * deliverynote.test.js
+ *
+ * Utiliza jest.unstable_mockModule para reemplazar storage.service.js ANTES
+ * de que se cargue app.js (que lo consume de forma transitiva a través del
+ * controlador). Esto permite ejercitar el flujo completo de firma sin
+ * depender de credenciales reales de Cloudinary en CI/CD.
+ */
+
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+
+// ── Mock de Cloudinary/storage ANTES de importar cualquier consumidor ─────────
+jest.unstable_mockModule('../src/services/storage.service.js', () => ({
+  uploadImage: jest.fn().mockResolvedValue(
+    'https://res.cloudinary.com/mock/signatures/test-sig.webp'
+  ),
+  uploadPdf: jest.fn().mockResolvedValue(
+    'https://res.cloudinary.com/mock/pdfs/test-albaran.pdf'
+  ),
+}));
+
+// ── Importaciones dinámicas (DESPUÉS del mock) ────────────────────────────────
+const { default: request }  = await import('supertest');
+const { default: app }      = await import('../src/app.js');
+const { connectTestDb, clearDb, disconnectTestDb } = await import('./helpers/db.helper.js');
 
 beforeAll(async () => { await connectTestDb(); });
 beforeEach(async () => { await clearDb(); });
 afterAll(async () => { await disconnectTestDb(); });
 
+// ── Constantes ────────────────────────────────────────────────────────────────
+const API_USER = '/api/user';
+const API_DN   = '/api/deliverynote';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const API_USER  = '/api/user';
-const API_DN    = '/api/deliverynote';
-
+/**
+ * Crea un usuario admin verificado con empresa, cliente y proyecto.
+ * Devuelve { token, clientId, projectId }.
+ */
 const fullSetup = async () => {
-  // Registro y verificación
   const { body: reg } = await request(app)
     .post(`${API_USER}/register`)
     .send({ email: 'admin@bildytest.com', password: 'SecurePass123!' });
 
   const mongoose = (await import('mongoose')).default;
   const col = mongoose.connection.db.collection('users');
-  const doc = await col.findOne({ email: 'admin@bildytest.com' }, { projection: { verificationCode: 1 } });
+  const doc = await col.findOne(
+    { email: 'admin@bildytest.com' },
+    { projection: { verificationCode: 1 } }
+  );
   await request(app)
     .put(`${API_USER}/validation`)
     .set('Authorization', `Bearer ${reg.accessToken}`)
@@ -43,12 +71,10 @@ const fullSetup = async () => {
 
   const authToken = final.accessToken;
 
-  // Crear cliente
   const { body: clientBody } = await request(app)
     .post('/api/client').set('Authorization', `Bearer ${authToken}`)
     .send({ name: 'Cliente Test', cif: 'A87654321' });
 
-  // Crear proyecto
   const { body: projBody } = await request(app)
     .post('/api/project').set('Authorization', `Bearer ${authToken}`)
     .send({ client: clientBody.client._id, name: 'Proyecto Test', projectCode: 'PRJ-001' });
@@ -60,7 +86,54 @@ const fullSetup = async () => {
   };
 };
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+/**
+ * Igual que fullSetup pero también devuelve el companyId del admin,
+ * necesario para registrar invitados en la misma compañía.
+ */
+const fullSetupWithCompany = async () => {
+  const setup = await fullSetup();
+  const mongoose = (await import('mongoose')).default;
+  const col = mongoose.connection.db.collection('users');
+  const adminDoc = await col.findOne({ email: 'admin@bildytest.com' });
+  return { ...setup, companyId: adminDoc.company };
+};
+
+/**
+ * Registra un segundo usuario con role='guest' en la misma compañía del admin.
+ * Inyecta el role y company directamente en MongoDB para evitar el flujo de
+ * invitación por e-mail que no es viable en tests.
+ * Devuelve el accessToken del guest.
+ */
+const setupGuest = async (companyId) => {
+  const { body: reg } = await request(app)
+    .post(`${API_USER}/register`)
+    .send({ email: 'guest@bildytest.com', password: 'SecurePass123!' });
+
+  const mongoose = (await import('mongoose')).default;
+  const col = mongoose.connection.db.collection('users');
+  const doc = await col.findOne(
+    { email: 'guest@bildytest.com' },
+    { projection: { verificationCode: 1 } }
+  );
+  await request(app)
+    .put(`${API_USER}/validation`)
+    .set('Authorization', `Bearer ${reg.accessToken}`)
+    .send({ code: doc.verificationCode });
+
+  // Inyectar company y role — simula haber sido invitado por el admin
+  await col.updateOne(
+    { email: 'guest@bildytest.com' },
+    { $set: { role: 'guest', company: companyId } }
+  );
+
+  const { body: logged } = await request(app)
+    .post(`${API_USER}/login`)
+    .send({ email: 'guest@bildytest.com', password: 'SecurePass123!' });
+
+  return logged.accessToken;
+};
+
+// ── Tests existentes ──────────────────────────────────────────────────────────
 
 describe('POST /api/deliverynote — Crear albarán', () => {
   it('201 — crea albarán de tipo horas', async () => {
@@ -248,7 +321,6 @@ describe('DELETE /api/deliverynote/:id — Eliminar albarán', () => {
     const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
       .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
 
-    // Marcar como firmado directamente en DB
     const mongoose = (await import('mongoose')).default;
     await mongoose.connection.db.collection('deliverynotes').updateOne(
       { _id: new (await import('mongoose')).default.Types.ObjectId(body.note._id) },
@@ -303,7 +375,6 @@ describe('GET /api/deliverynote/pdf/:id — PDF de albarán firmado', () => {
     const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
       .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
 
-    // Simular firma con pdfUrl directamente en DB
     const mongoose = (await import('mongoose')).default;
     await mongoose.connection.db.collection('deliverynotes').updateOne(
       { _id: new mongoose.Types.ObjectId(body.note._id) },
@@ -313,13 +384,12 @@ describe('GET /api/deliverynote/pdf/:id — PDF de albarán firmado', () => {
     const res = await request(app)
       .get(`${API_DN}/pdf/${body.note._id}`)
       .set('Authorization', `Bearer ${token}`)
-      .redirects(0); // no seguir el redirect
+      .redirects(0);
     expect(res.status).toBe(302);
   });
 });
 
 describe('Guardia sin empresa — deliverynote', () => {
-  // Helper: usuario verificado sin empresa
   const setupNoCompany = async () => {
     const { body: reg } = await request(app)
       .post(`${API_USER}/register`)
@@ -334,7 +404,6 @@ describe('Guardia sin empresa — deliverynote', () => {
 
   it('400 — crear albarán sin empresa', async () => {
     const token = await setupNoCompany();
-    // Usar ObjectIds válidos para que Zod no rechace antes de llegar al controlador
     const res = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
       .send({ client: '64f1234567890123456789ab', project: '64f1234567890123456789ab', format: 'hours', hours: 4, workDate: '2025-06-15' });
     expect(res.status).toBe(400);
@@ -356,12 +425,11 @@ describe('PATCH /api/deliverynote/:id/sign — Firmar albarán (rutas de error)'
     expect(res.status).toBe(404);
   });
 
-  it('400 — albarán ya está firmado', async () => {
+  it('400 — albarán ya está firmado (vía DB)', async () => {
     const { token, clientId, projectId } = await fullSetup();
     const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
       .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
 
-    // Marcar como firmado directamente en DB
     const mongoose = (await import('mongoose')).default;
     await mongoose.connection.db.collection('deliverynotes').updateOne(
       { _id: new mongoose.Types.ObjectId(body.note._id) },
@@ -383,7 +451,6 @@ describe('PATCH /api/deliverynote/:id/sign — Firmar albarán (rutas de error)'
     const res = await request(app)
       .patch(`${API_DN}/${body.note._id}/sign`)
       .set('Authorization', `Bearer ${token}`);
-    // no .attach() → req.file is undefined
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/firma/i);
   });
@@ -393,30 +460,150 @@ describe('POST /api/deliverynote — Validaciones extra', () => {
   it('400 — proyecto no pertenece al cliente indicado', async () => {
     const { token, clientId } = await fullSetup();
 
-    // Crear segundo cliente
     const { body: client2Body } = await request(app)
       .post('/api/client')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Otro Cliente SL', cif: 'B99999999' });
 
-    // Crear proyecto para el segundo cliente
     const { body: proj2Body } = await request(app)
       .post('/api/project')
       .set('Authorization', `Bearer ${token}`)
       .send({ client: client2Body.client._id, name: 'Proj Otro', projectCode: 'PRJ-OTR' });
 
-    // Intentar crear albarán combinando clientId del primero con proyecto del segundo
     const res = await request(app)
       .post(API_DN)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        client:  clientId,
-        project: proj2Body.project._id,
-        format:  'hours',
-        hours:   4,
+        client:   clientId,
+        project:  proj2Body.project._id,
+        format:   'hours',
+        hours:    4,
         workDate: '2025-06-15',
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/no pertenece/i);
+  });
+});
+
+// ── Invariantes documentados con jest.unstable_mockModule ────────────────────
+
+describe('INVARIANTE 1 — El estado de firma es permanente e irreversible', () => {
+  it('400 — un albarán firmado no puede firmarse de nuevo', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    const noteId = body.note._id;
+
+    // Primera firma — el mock resuelve uploadImage/uploadPdf sin Cloudinary real
+    const first = await request(app)
+      .patch(`${API_DN}/${noteId}/sign`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('signature', Buffer.from('fake-image-data'), { filename: 'sig.png', contentType: 'image/png' });
+    expect(first.status).toBe(200);
+
+    // Segunda firma — debe rechazarse: el estado `signed: true` es permanente
+    const second = await request(app)
+      .patch(`${API_DN}/${noteId}/sign`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('signature', Buffer.from('fake-image-data'), { filename: 'sig.png', contentType: 'image/png' });
+    expect(second.status).toBe(400);
+    expect(second.body.message).toMatch(/firmado/i);
+  });
+});
+
+describe('INVARIANTE 2 — Un albarán firmado no puede eliminarse', () => {
+  it('400 — un albarán firmado no puede eliminarse aunque el solicitante sea su creador', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    const noteId = body.note._id;
+
+    // Firmar usando el flujo real (mock evita dependencia de Cloudinary)
+    const signRes = await request(app)
+      .patch(`${API_DN}/${noteId}/sign`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('signature', Buffer.from('fake-image-data'), { filename: 'sig.png', contentType: 'image/png' });
+    expect(signRes.status).toBe(200);
+
+    // El creador intenta eliminar su propio albarán ya firmado → rechazado
+    const del = await request(app)
+      .delete(`${API_DN}/${noteId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(del.status).toBe(400);
+    expect(del.body.message).toMatch(/firmado/i);
+  });
+});
+
+describe('INVARIANTE 3 — Control de acceso owner-or-guest (GET albarán)', () => {
+  it('403 — un guest no puede ver albaranes de otro usuario aunque compartan la misma compañía', async () => {
+    const { token, clientId, projectId, companyId } = await fullSetupWithCompany();
+
+    // El admin crea un albarán
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    const noteId = body.note._id;
+
+    // El guest es inyectado en la misma compañía vía MongoDB
+    const guestToken = await setupGuest(companyId);
+
+    // El guest intenta acceder al albarán del admin → 403
+    const res = await request(app)
+      .get(`${API_DN}/${noteId}`)
+      .set('Authorization', `Bearer ${guestToken}`);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('INVARIANTE 4 — Control de acceso owner-or-guest (PDF)', () => {
+  it('403 — un guest no puede descargar el PDF de un albarán que no le pertenece', async () => {
+    const { token, clientId, projectId, companyId } = await fullSetupWithCompany();
+
+    // El admin crea un albarán
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    const noteId = body.note._id;
+
+    // Guest en la misma compañía
+    const guestToken = await setupGuest(companyId);
+
+    // El guest intenta descargar el PDF del albarán del admin → 403
+    const res = await request(app)
+      .get(`${API_DN}/pdf/${noteId}`)
+      .set('Authorization', `Bearer ${guestToken}`);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('INVARIANTE 5 — La firma persiste las URLs de Cloudinary en base de datos', () => {
+  it('200 — la firma almacena signatureUrl y pdfUrl del mock y bloquea cualquier modificación posterior', async () => {
+    const { token, clientId, projectId } = await fullSetup();
+
+    const { body } = await request(app).post(API_DN).set('Authorization', `Bearer ${token}`)
+      .send({ client: clientId, project: projectId, format: 'hours', hours: 4, workDate: '2025-06-15' });
+    const noteId = body.note._id;
+
+    // Firmar: el mock inyecta URLs deterministas sin necesidad de Cloudinary
+    const res = await request(app)
+      .patch(`${API_DN}/${noteId}/sign`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('signature', Buffer.from('fake-image-data'), { filename: 'sig.png', contentType: 'image/png' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.note.signed).toBe(true);
+    expect(res.body.note.signatureUrl).toBe(
+      'https://res.cloudinary.com/mock/signatures/test-sig.webp'
+    );
+    expect(res.body.note.pdfUrl).toBe(
+      'https://res.cloudinary.com/mock/pdfs/test-albaran.pdf'
+    );
+
+    // Verificar que el estado firmado es persistente y bloquea re-firma
+    const reSign = await request(app)
+      .patch(`${API_DN}/${noteId}/sign`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('signature', Buffer.from('fake-image-data'), { filename: 'sig.png', contentType: 'image/png' });
+    expect(reSign.status).toBe(400);
   });
 });
